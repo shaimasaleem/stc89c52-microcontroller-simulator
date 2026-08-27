@@ -109,16 +109,16 @@ The CPU performs the required operation using the ALU, registers, or memory.
 
 ** FEW  IMPORTANT INSTRUCTION IN STC89C52**
 ---------------------------
-MOV	Moves data from one location to another	
-ADD	Adds a value to the accumulator	
+MOV 	Moves data from one location to another	
+ADD 	Adds a value to the accumulator	
 SUBB	Subtracts a value from the accumulator	
-INC	Increases a value by 1	
-DEC	Decreases a value by 1
-MUL	Multiplies A and B
-DIV	Divides A by B	
+INC	  Increases a value by 1	
+DEC 	Decreases a value by 1
+MUL 	Multiplies A and B
+DIV 	Divides A by B	
 SJMP	Jumps to another location in the program
 PUSH	Stores data on the stack	
-POP	Retrieves data from the stack
+POP 	Retrieves data from the stack
 
 
 
