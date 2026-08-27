@@ -2,12 +2,6 @@
 
 The objective is to design a software based simulator which will provide the functionality of the STC89C52 microcontroller.
 
-It becomes difficult for users to 
-
-
-
-
-
 
 
 
