@@ -55,7 +55,8 @@ We select this language because it supports OOP and offers suitable data structu
 
 ## 8. Initial System Architecture
 
-<img width="1402" height="1122" alt="stc89c52" src="https://github.com/user-attachments/assets/530ab6db-de09-4161-a7ad-105c1fad845b" />
+<img width="1214" height="1295" alt="cpu arch" src="https://github.com/user-attachments/assets/79fb5536-6027-44b5-b65f-f03fb51ae17b" />
+
 
 
 ## 9. Initial Development Plan
