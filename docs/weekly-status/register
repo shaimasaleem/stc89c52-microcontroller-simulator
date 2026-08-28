@@ -1,1 +1,141 @@
+STC89C52 MICROCONTROLLER
+Register and Memory Documentation
+
+1. Contribution Scope
+This document provides a structured study of the registers and memory organization of the STC89C52RC microcontroller. The information is intended to support the team's educational microcontroller simulator, especially the parts that display CPU state, execute instructions, access memory, manage the stack, and represent special function registers (SFRs).
+•	Document the main CPU registers and their functions.
+•	Document the internal RAM organization and register banks.
+•	Document the Special Function Register (SFR) address space.
+•	Explain stack operation and the Stack Pointer.
+•	Explain program memory versus data memory.
+•	Identify bit-addressable memory and bit-addressable SFRs.
+•	Provide simulator-oriented guidance for representing registers and memory.
+2. STC89C52RC Memory Overview
+The STC89C52RC is an enhanced 80C51-compatible microcontroller. The device provides 8 KB of on-chip Flash program memory and 512 bytes of on-chip RAM. Its 8051-compatible data-memory organization includes the conventional 256-byte internal data-memory area, while the STC89xx family also provides additional RAM features depending on the exact device configuration. For the simulator, the conventional 8051 memory model should be kept clearly separated from any extended device-specific memory.
+Memory / Area	Size / Addressing	Purpose
+Program Flash	8 KB on-chip	Stores program/instruction code.
+Internal data RAM	256-byte 8051 data space	Variables, register banks, bit-addressable area and general-purpose RAM.
+Lower RAM	00H–7FH	Direct and indirect addressing.
+Register banks	00H–1FH	Four banks, each containing R0–R7.
+Bit-addressable RAM	20H–2FH	128 individually addressable bits.
+Upper RAM	80H–FFH	128 bytes of upper RAM, accessed indirectly in the standard 8051 organization.
+SFR space	80H–FFH	Control/status registers, accessed by direct addressing.
+Stack	Uses internal RAM	Stores return addresses and temporary stack data; controlled by SP.
+
+3. Internal RAM Organization
+The lower 128 bytes of internal RAM are divided into three important regions. The first 32 bytes contain four register banks. The next 16 bytes are bit-addressable. The remaining 48 bytes are general-purpose RAM.
+Address Range	Size	Organization / Use
+00H–07H	8 bytes	Register Bank 0: R0–R7
+08H–0FH	8 bytes	Register Bank 1: R0–R7
+10H–17H	8 bytes	Register Bank 2: R0–R7
+18H–1FH	8 bytes	Register Bank 3: R0–R7
+20H–2FH	16 bytes	Bit-addressable RAM (128 bits)
+30H–7FH	80 bytes	General-purpose RAM
+
+4. Register Banks and R0–R7
+The 8051 architecture contains four register banks. Each bank has eight 8-bit registers named R0 through R7. Only one bank is active at a time. The RS1 and RS0 bits of the Program Status Word (PSW) select the active bank.
+RS1	RS0	Selected Bank	Address Range
+0	0	Bank 0	00H–07H
+0	1	Bank 1	08H–0FH
+1	0	Bank 2	10H–17H
+1	1	Bank 3	18H–1FH
+
+Simulator implication: the simulator should store all four banks but expose R0–R7 according to the current PSW.RS1/RS0 selection.
+5. Main CPU Registers
+Register	Size	Address / Type	Function
+ACC (A)	8-bit	E0H, SFR	Accumulator used extensively for arithmetic, logic and data movement.
+B	8-bit	F0H, SFR	Used by MUL AB and DIV AB and can also be used as a general register.
+PSW	8-bit	D0H, SFR	Contains CPU status flags and register-bank selection bits.
+SP	8-bit	81H, SFR	Stack Pointer; points to the current top of the stack.
+DPTR	16-bit	DPL=82H, DPH=83H	16-bit data pointer for addressing data/external memory.
+PC	16-bit	CPU register	Program Counter; holds the address of the next instruction to fetch.
+R0–R7	8-bit each	Internal RAM	Working registers in the currently selected register bank.
+
+6. Program Status Word (PSW)
+PSW is an important SFR because it records arithmetic status and determines the active register bank.
+Bit	Name	Meaning
+7	CY	Carry flag; affected by arithmetic and some Boolean operations.
+6	AC	Auxiliary Carry flag, mainly relevant to BCD arithmetic.
+5	F0	User-definable flag.
+4	RS1	Register-bank select bit 1.
+3	RS0	Register-bank select bit 0.
+2	OV	Overflow flag.
+1	F1	User-definable flag.
+0	P	Parity flag associated with the accumulator.
+
+7. Stack and Stack Pointer
+The stack is located in internal data RAM. The Stack Pointer (SP) is an 8-bit SFR at address 81H. It identifies the current stack position. During PUSH operations the stack grows upward in internal RAM. CALL/ACALL instructions and interrupts also use the stack to preserve return addresses. POP and RET/RETI operations retrieve stack data as appropriate.
+•	After reset, SP has the standard 8051 reset value of 07H.
+•	A PUSH operation increments SP before storing the byte.
+•	A POP operation reads the byte at SP and then decrements SP.
+•	CALL/ACALL and interrupts push return information onto the stack.
+•	The simulator should detect stack growth beyond the available internal RAM region.
+8. Special Function Registers (SFRs)
+SFRs are control and status registers located in the 80H–FFH address range. They control ports, timers, serial communication, interrupts and CPU functions. SFRs are accessed using direct addressing.
+SFR	Address	Main Purpose
+P0	80H	Port 0 latch / I/O control
+SP	81H	Stack Pointer
+DPL	82H	Low byte of DPTR
+DPH	83H	High byte of DPTR
+PCON	87H	Power-control functions
+TCON	88H	Timer 0/1 control and external interrupt control
+TMOD	89H	Timer 0/1 mode selection
+TL0 / TL1	8AH / 8BH	Low timer/counter bytes
+TH0 / TH1	8CH / 8DH	High timer/counter bytes
+P1	90H	Port 1 latch / I/O control
+SCON	98H	Serial port control
+SBUF	99H	Serial data buffer
+P2	A0H	Port 2 latch / I/O control
+IE	A8H	Interrupt enable control
+P3	B0H	Port 3 latch / I/O control
+IP	B8H	Interrupt priority control
+PSW	D0H	Program status word
+ACC	E0H	Accumulator
+B	F0H	B register
+
+9. Bit-Addressable Memory and SFRs
+The internal RAM area 20H–2FH contains 128 individually addressable bits. This is useful for Boolean variables and bit-oriented instructions. In addition, selected SFRs are bit-addressable. A bit-addressable SFR is one whose SFR address is divisible by 8 in the standard 8051 map.
+•	Bit-addressable RAM: byte addresses 20H–2FH.
+•	This area provides 128 individual bits.
+•	Important bit-addressable SFR examples include P0, TCON, P1, SCON, P2, IE, P3, IP and PSW.
+•	The simulator should support both byte-level and bit-level access where the instruction set requires it.
+10. DPTR and Data Addressing
+DPTR is a 16-bit data pointer made from DPH and DPL. DPH contains the high byte and DPL contains the low byte. The STC89C52RC also supports a second data pointer through its device-specific DPTR switching mechanism. For a first version of the educational simulator, DPTR0 can be modeled as the primary 16-bit pointer, with DPTR1 added if the team implements the enhanced feature.
+11. Simulator Data Model Recommendation
+The following logical representation can be used when implementing the simulator. It keeps the CPU state separate from memory and makes register updates visible after each instruction.
+Component	Suggested Representation	What the UI Can Display
+Accumulator	8-bit integer / byte	ACC value in hex and binary
+B register	8-bit integer / byte	B value
+PSW	8-bit integer + named flags	CY, AC, RS1, RS0, OV, P
+PC	16-bit integer	Current instruction address
+SP	8-bit integer	Stack pointer and stack contents
+DPTR	16-bit integer	DPH, DPL and combined address
+R0–R7	4 × 8-byte banks	Current bank and all register values
+Internal RAM	256-byte array	Address, value and region
+SFRs	Address-to-register mapping	Register name, address and current value
+Stack	RAM-backed structure	Stack entries and SP position
+
+12. Example Memory/Instruction Trace
+Example for the simulator: assume SP = 07H and instruction PUSH 30H is executed. The simulator should first increment SP to 08H and then copy the byte stored at RAM address 30H into RAM address 08H. The trace can show both operations so that students can understand stack behavior.
+Step	CPU / Memory Action	Expected State
+1	Before PUSH	SP = 07H; RAM[30H] = data
+2	Increment SP	SP = 08H
+3	Store source byte	RAM[08H] = RAM[30H]
+4	After PUSH	SP = 08H; stack top contains source byte
+
+13. Key Points for Project Implementation
+•	Maintain separate representations for PC, ACC, B, PSW, SP and DPTR.
+•	Model the four register banks and use PSW.RS1/RS0 to select the active bank.
+•	Represent RAM by address so instructions can read and write individual bytes.
+•	Represent SFRs by their addresses and connect them to peripheral/control behavior later.
+•	Implement stack operations using SP and internal RAM.
+•	Display register and memory state after each instruction for educational tracing.
+•	Clearly distinguish program memory (Flash/instruction storage) from data memory (RAM/SFRs).
+•	Add device-specific STC89C52RC features only after the core 8051 model is working.
+14. Conclusion
+The register and memory organization of the STC89C52RC forms the foundation for the simulator's CPU-state and memory modules. Correct modeling of the register banks, PSW, accumulator, DPTR, stack, internal RAM and SFRs will allow the simulator to execute instructions and visibly demonstrate how the microcontroller changes state. This documentation can therefore serve as the Week 1 technical reference for the register/memory portion of the project.
+15. References
+1.	STC Micro Technology Co., Ltd., STC89C52RC Datasheet / STC89C52RC product documentation.
+2.	Intel MCS-51 / 8051 architecture documentation and standard 8051 instruction-set references.
+3.	STC Micro Technology product page: STC89C52RC series.
 
