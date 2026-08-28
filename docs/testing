@@ -1,5 +1,0 @@
-Test 1 → Check register values
-Test 2 → Check memory read/write
-Test 3 → Check stack operations
-Test 4 → Check process state changes
-Test 5 → Check instruction execution
