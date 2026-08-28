@@ -1,4 +1,4 @@
-STC89C52 MICROCONTROLLERCPU AND ARCHITECTURE STUDY
+UI DESIGNING 
 1. STC89C52 Microcontroller
 STC89C52 is an 8-bit microcontroller based on the 8051 architecture. It contains a CPU, memory, registers, GPIO ports, timers and interrupts. These components work together to control electronic devices.
 The main benefit of a microcontroller is that several required elements are integrated into one device instead of being added separately.
