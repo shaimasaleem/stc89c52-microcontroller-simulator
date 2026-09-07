@@ -1,0 +1,1861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>STC89C52 Microcontroller Simulator - Week 2 Prototype</title>
+
+  <style>
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #0b0813;
+      color: #ffffff;
+      font-family: Consolas, "Lucida Console", "Courier New", monospace;
+      padding: 14px 18px;
+      min-height: 100vh;
+    }
+
+    .simulator-container {
+      max-width: 1200px;
+      width: 100%;
+      margin: 0 auto;
+      background: #0e0a1a;
+      border: 1px solid #4c1d95;
+      border-radius: 10px;
+      padding: 16px 20px;
+      box-shadow: 0 0 30px rgba(124, 58, 237, 0.15);
+    }
+
+    /* ================= HEADER ================= */
+
+    .header {
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    .header h1 {
+      color: #c084fc;
+      font-size: 1.25rem;
+      letter-spacing: 2px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .header .subtitle {
+      color: #9333ea;
+      font-size: 0.75rem;
+      letter-spacing: 1px;
+      margin-top: 2px;
+    }
+
+    /* ================= CONTROL BAR ================= */
+
+    .control-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #140e26;
+      border: 1px solid #581c87;
+      border-radius: 8px;
+      padding: 8px 14px;
+      margin-bottom: 14px;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn {
+      background: #1a1233;
+      color: #d8b4fe;
+      border: 1px solid #6b21a8;
+      border-radius: 6px;
+      padding: 6px 14px;
+      font-family: inherit;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      background: #2e1a5a;
+      border-color: #a855f7;
+      color: #ffffff;
+      box-shadow: 0 0 8px rgba(168, 85, 247, 0.4);
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .status-badge {
+      background: #130d24;
+      border: 1px solid #581c87;
+      border-radius: 6px;
+      padding: 5px 12px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-label {
+      color: #ffffff;
+    }
+
+    .status-value {
+      color: #22c55e;
+      letter-spacing: 1px;
+    }
+
+    /* ================= PROGRAM EDITOR ================= */
+
+    .program-editor {
+      margin-bottom: 12px;
+    }
+
+    .program-input {
+      width: 100%;
+      height: 130px;
+      resize: vertical;
+      background: #0b0813;
+      color: #ffffff;
+      border: 1px solid #6b21a8;
+      border-radius: 6px;
+      padding: 10px;
+      font-family: inherit;
+      font-size: 0.82rem;
+      line-height: 1.5;
+      outline: none;
+    }
+
+    .program-input:focus {
+      border-color: #a855f7;
+      box-shadow: 0 0 8px rgba(168, 85, 247, 0.2);
+    }
+
+    .input-help {
+      color: #94a3b8;
+      font-size: 0.7rem;
+      margin-top: 5px;
+    }
+
+    /* ================= MAIN GRID ================= */
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 0.9fr 1.1fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .panel-card {
+      background: #120d24;
+      border: 1px solid #581c87;
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+
+    .panel-title {
+      color: #c084fc;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+
+    .left-stack,
+    .right-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* ================= TABLE ================= */
+
+    .program-table-container {
+      overflow-y: auto;
+      max-height: 260px;
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+
+    .data-table th {
+      color: #a855f7;
+      text-align: left;
+      padding: 4px 6px 6px 6px;
+      border-bottom: 1px solid #4c1d95;
+      font-size: 0.75rem;
+      position: sticky;
+      top: 0;
+      background: #120d24;
+    }
+
+    .data-table td {
+      padding: 5px 6px;
+      color: #ffffff;
+      white-space: nowrap;
+    }
+
+    .data-table tr {
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .data-table tr:hover:not(.active-row) {
+      background: #1b1235;
+    }
+
+    .data-table tr.active-row {
+      background: #4c1d95;
+      font-weight: 700;
+    }
+
+    .pointer-cell {
+      width: 25px;
+      text-align: center;
+    }
+
+    .addr-cell {
+      width: 70px;
+      color: #d8b4fe !important;
+    }
+
+    .category-cell {
+      color: #94a3b8 !important;
+      font-size: 0.75rem;
+    }
+
+    /* ================= CURRENT INSTRUCTION ================= */
+
+    .current-instr-card {
+      background: #150f2b;
+      border: 1px solid #6b21a8;
+      border-radius: 8px;
+      padding: 10px 14px;
+    }
+
+    .instr-text {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: 1px;
+      margin-top: 2px;
+    }
+
+    .addr-text {
+      color: #d8b4fe;
+      font-size: 0.8rem;
+      margin-top: 4px;
+    }
+
+    /* ================= REGISTERS ================= */
+
+    .registers-list {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .reg-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 6px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+    }
+
+    .reg-row:hover {
+      background: #1a1233;
+    }
+
+    .reg-name {
+      color: #c084fc;
+      font-weight: 700;
+      width: 40px;
+    }
+
+    .reg-val {
+      color: #ffffff;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    /* ================= MEMORY ================= */
+
+    .memory-container {
+      overflow-y: auto;
+      max-height: 210px;
+    }
+
+    /* ================= FLAGS ================= */
+
+    .flags-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: center;
+    }
+
+    .flags-table th {
+      color: #a855f7;
+      font-size: 0.75rem;
+      padding: 4px;
+      border-bottom: 1px solid #4c1d95;
+    }
+
+    .flags-table td {
+      color: #ffffff;
+      font-size: 0.9rem;
+      font-weight: 700;
+      padding: 6px 4px;
+    }
+
+    .flag-active {
+      color: #22c55e !important;
+    }
+
+    /* ================= TRACE ================= */
+
+    .trace-card {
+      background: #120d24;
+      border: 1px solid #581c87;
+      border-radius: 8px;
+      padding: 10px 14px;
+      display: grid;
+      grid-template-columns: 1fr 1.6fr;
+      gap: 20px;
+    }
+
+    .trace-stages {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .stage-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 3px 0;
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+
+    .stage-name {
+      color: #ffffff;
+      letter-spacing: 1px;
+    }
+
+    .stage-check {
+      color: #64748b;
+      font-weight: 900;
+    }
+
+    .stage-check.active {
+      color: #22c55e;
+    }
+
+    .trace-results {
+      border-left: 1px solid #4c1d95;
+      padding-left: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .diff-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.85rem;
+      padding: 2px 0;
+    }
+
+    .diff-target {
+      color: #ffffff;
+      width: 90px;
+    }
+
+    .diff-change {
+      color: #ffffff;
+      font-weight: 700;
+    }
+
+    .arrow {
+      color: #a855f7;
+      font-weight: 700;
+      margin: 0 4px;
+    }
+
+    .message {
+      color: #94a3b8;
+      font-size: 0.8rem;
+    }
+
+    /* ================= SCROLLBAR ================= */
+
+    ::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #0f0a1c;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #4c1d95;
+      border-radius: 4px;
+    }
+
+    /* ================= RESPONSIVE ================= */
+
+    @media (max-width: 900px) {
+
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .trace-card {
+        grid-template-columns: 1fr;
+      }
+
+      .trace-results {
+        border-left: none;
+        border-top: 1px solid #4c1d95;
+        padding-left: 0;
+        padding-top: 10px;
+      }
+
+      .control-bar {
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .btn-group {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+    }
+
+  </style>
+</head>
+
+<body>
+
+<div class="simulator-container">
+
+  <!-- ================= HEADER ================= -->
+
+  <header class="header">
+
+    <h1>STC89C52 MICROCONTROLLER SIMULATOR</h1>
+
+    <div class="subtitle">
+      Week 2 Prototype • CPU & Instruction Execution
+    </div>
+
+  </header>
+
+
+  <!-- ================= CONTROL BAR ================= -->
+
+  <section class="control-bar">
+
+    <div class="btn-group">
+
+      <button class="btn" id="btnLoad">
+        📁 LOAD
+      </button>
+
+      <button class="btn" id="btnReset">
+        🔄 RESET
+      </button>
+
+      <button class="btn" id="btnStep">
+        ▶ STEP
+      </button>
+
+      <button class="btn" id="btnRun">
+        ⏩ RUN
+      </button>
+
+    </div>
+
+    <div class="status-badge">
+
+      <span class="status-label">
+        STATUS :
+      </span>
+
+      <span
+        class="status-value"
+        id="statusDisplay">
+        READY
+      </span>
+
+    </div>
+
+  </section>
+
+
+  <!-- ================= PROGRAM EDITOR ================= -->
+
+  <section class="program-editor panel-card">
+
+    <div class="panel-title">
+      PROGRAM INPUT
+    </div>
+
+    <textarea
+      id="programInput"
+      class="program-input">MOV A,#10
+MOVC A,10
+ADD A,#5
+SUB A,#2
+ANL A,#3
+INC A
+SJMP 7
+HALT</textarea>
+
+    <div class="input-help">
+      Enter one instruction per line. Example:
+      MOV A,#10
+    </div>
+
+  </section>
+
+
+  <!-- ================= MAIN GRID ================= -->
+
+  <main class="main-grid">
+
+
+    <!-- ================= LEFT COLUMN ================= -->
+
+    <div class="left-stack">
+
+
+      <!-- PROGRAM -->
+
+      <div class="panel-card">
+
+        <div class="panel-title">
+          PROGRAM / INSTRUCTIONS
+        </div>
+
+        <div class="program-table-container">
+
+          <table class="data-table">
+
+            <thead>
+
+              <tr>
+                <th>PTR</th>
+                <th>ADDRESS</th>
+                <th>INSTRUCTION</th>
+                <th>CATEGORY</th>
+              </tr>
+
+            </thead>
+
+            <tbody id="programTableBody">
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </div>
+
+
+      <!-- CURRENT INSTRUCTION -->
+
+      <div class="current-instr-card">
+
+        <div class="panel-title">
+          CURRENT INSTRUCTION
+        </div>
+
+        <div
+          class="instr-text"
+          id="curMnemonic">
+          -
+        </div>
+
+        <div
+          class="addr-text"
+          id="curAddr">
+          Address : ----
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- ================= CENTER COLUMN ================= -->
+
+    <div class="panel-card">
+
+      <div class="panel-title">
+        REGISTERS
+      </div>
+
+      <div class="registers-list">
+
+        <div class="reg-row">
+          <span class="reg-name">PC</span>
+          <span class="reg-val" id="regPC">00H</span>
+        </div>
+
+        <div class="reg-row">
+          <span class="reg-name">SP</span>
+          <span class="reg-val" id="regSP">00H</span>
+        </div>
+
+        <div class="reg-row">
+          <span class="reg-name">A</span>
+          <span class="reg-val" id="regA">00H</span>
+        </div>
+
+        <div class="reg-row">
+          <span class="reg-name">B</span>
+          <span class="reg-val" id="regB">00H</span>
+        </div>
+
+        <div class="reg-row">
+          <span class="reg-name">R0</span>
+          <span class="reg-val" id="regR0">00H</span>
+        </div>
+
+        <div class="reg-row">
+          <span class="reg-name">R1</span>
+          <span class="reg-val" id="regR1">00H</span>
+        </div>
+
+        <div class="reg-row">
+          <span class="reg-name">R2</span>
+          <span class="reg-val" id="regR2">00H</span>
+        </div>
+
+        <div class="reg-row">
+          <span class="reg-name">R3</span>
+          <span class="reg-val" id="regR3">00H</span>
+        </div>
+
+        <div class="reg-row">
+          <span class="reg-name">R4</span>
+          <span class="reg-val" id="regR4">00H</span>
+        </div>
+
+        <div class="reg-row">
+          <span class="reg-name">R5</span>
+          <span class="reg-val" id="regR5">00H</span>
+        </div>
+
+        <div class="reg-row">
+          <span class="reg-name">R6</span>
+          <span class="reg-val" id="regR6">00H</span>
+        </div>
+
+        <div class="reg-row">
+          <span class="reg-name">R7</span>
+          <span class="reg-val" id="regR7">00H</span>
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- ================= RIGHT COLUMN ================= -->
+
+    <div class="right-stack">
+
+
+      <!-- MEMORY -->
+
+      <div class="panel-card">
+
+        <div class="panel-title">
+          MEMORY (DATA MEMORY)
+        </div>
+
+        <div class="memory-container">
+
+          <table class="data-table">
+
+            <thead>
+
+              <tr>
+                <th>ADDRESS</th>
+                <th>VALUE</th>
+              </tr>
+
+            </thead>
+
+            <tbody id="memoryTableBody">
+
+              <tr>
+                <td>00</td>
+                <td>00H</td>
+              </tr>
+
+              <tr>
+                <td>01</td>
+                <td>00H</td>
+              </tr>
+
+              <tr>
+                <td>02</td>
+                <td>00H</td>
+              </tr>
+
+              <tr>
+                <td>03</td>
+                <td>00H</td>
+              </tr>
+
+              <tr>
+                <td>04</td>
+                <td>00H</td>
+              </tr>
+
+              <tr>
+                <td>05</td>
+                <td>00H</td>
+              </tr>
+
+              <tr>
+                <td>06</td>
+                <td>00H</td>
+              </tr>
+
+              <tr>
+                <td>07</td>
+                <td>00H</td>
+              </tr>
+
+              <tr>
+                <td>08</td>
+                <td>00H</td>
+              </tr>
+
+              <tr>
+                <td>09</td>
+                <td>00H</td>
+              </tr>
+
+              <tr>
+                <td>0A</td>
+                <td>03H</td>
+              </tr>
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </div>
+
+
+      <!-- FLAGS -->
+
+      <div class="panel-card">
+
+        <div class="panel-title">
+          FLAGS / STATUS
+        </div>
+
+        <table class="flags-table">
+
+          <thead>
+
+            <tr>
+              <th>CY</th>
+              <th>AC</th>
+              <th>OV</th>
+              <th>P</th>
+            </tr>
+
+          </thead>
+
+          <tbody>
+
+            <tr>
+
+              <td id="flagCY">
+                0
+              </td>
+
+              <td id="flagAC">
+                0
+              </td>
+
+              <td id="flagOV">
+                0
+              </td>
+
+              <td id="flagP">
+                0
+              </td>
+
+            </tr>
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+    </div>
+
+  </main>
+
+
+  <!-- ================= EXECUTION TRACE ================= -->
+
+  <footer class="trace-card">
+
+
+    <!-- TRACE STAGES -->
+
+    <div>
+
+      <div class="panel-title">
+        EXECUTION TRACE
+      </div>
+
+      <div class="trace-stages">
+
+        <div class="stage-row">
+
+          <span class="stage-name">
+            FETCH
+          </span>
+
+          <span
+            class="stage-check"
+            id="fetchCheck">
+            ○
+          </span>
+
+        </div>
+
+
+        <div class="stage-row">
+
+          <span class="stage-name">
+            DECODE
+          </span>
+
+          <span
+            class="stage-check"
+            id="decodeCheck">
+            ○
+          </span>
+
+        </div>
+
+
+        <div class="stage-row">
+
+          <span class="stage-name">
+            EXECUTE
+          </span>
+
+          <span
+            class="stage-check"
+            id="executeCheck">
+            ○
+          </span>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- CHANGES -->
+
+    <div class="trace-results">
+
+      <div class="panel-title">
+        RESULT (CHANGES)
+      </div>
+
+      <div id="diffContainer">
+
+        <div class="message">
+          No instruction executed yet.
+        </div>
+
+      </div>
+
+    </div>
+
+  </footer>
+
+</div>
+
+
+<!-- ================= JAVASCRIPT ================= -->
+
+<script>
+
+  /* ==========================================
+     JAVA SERVER ADDRESS
+     ========================================== */
+
+  const API_BASE = "http://localhost:8080";
+
+
+  /* ==========================================
+     PROGRAM DATA
+     ========================================== */
+
+  let program = [];
+
+  let previousState = null;
+
+  let running = false;
+
+
+  /* ==========================================
+     INSTRUCTION CATEGORIES
+     ========================================== */
+
+  function getCategory(operation) {
+
+    operation = operation.toUpperCase();
+
+    if (operation === "MOV" || operation === "MOVC") {
+      return "Data Transfer";
+    }
+
+    if (operation === "ADD" || operation === "SUB") {
+      return "Arithmetic";
+    }
+
+    if (operation === "ANL") {
+      return "Logical";
+    }
+
+    if (operation === "INC") {
+      return "Increment";
+    }
+
+    if (operation === "SJMP") {
+      return "Control Flow";
+    }
+
+    if (operation === "HALT") {
+      return "Termination";
+    }
+
+    return "Other";
+  }
+
+
+  /* ==========================================
+     READ PROGRAM FROM TEXTAREA
+     ========================================== */
+
+  function readProgram() {
+
+    const text =
+      document.getElementById("programInput").value;
+
+    program = text
+      .split("\n")
+      .map(line => line.trim())
+      .filter(line => line.length > 0);
+
+    renderProgram();
+
+  }
+
+
+  /* ==========================================
+     DISPLAY PROGRAM TABLE
+     ========================================== */
+
+  function renderProgram() {
+
+    const table =
+      document.getElementById("programTableBody");
+
+    table.innerHTML = "";
+
+    program.forEach((instruction, index) => {
+
+      const row =
+        document.createElement("tr");
+
+      row.id = "programRow" + index;
+
+      row.onclick = function () {
+        selectInstruction(index);
+      };
+
+      const pointer =
+        document.createElement("td");
+
+      pointer.className = "pointer-cell";
+
+      const address =
+        document.createElement("td");
+
+      address.className = "addr-cell";
+
+      address.textContent =
+        formatHex(index);
+
+      const instructionCell =
+        document.createElement("td");
+
+      instructionCell.textContent =
+        instruction;
+
+      const category =
+        document.createElement("td");
+
+      category.className =
+        "category-cell";
+
+      const operation =
+        instruction
+          .split(/\s+/)[0]
+          .toUpperCase();
+
+      category.textContent =
+        getCategory(operation);
+
+      row.appendChild(pointer);
+      row.appendChild(address);
+      row.appendChild(instructionCell);
+      row.appendChild(category);
+
+      table.appendChild(row);
+
+    });
+
+  }
+
+
+  /* ==========================================
+     HEX FORMAT
+     ========================================== */
+
+  function formatHex(value) {
+
+    return Number(value)
+      .toString(16)
+      .toUpperCase()
+      .padStart(2, "0") + "H";
+
+  }
+
+
+  /* ==========================================
+     SELECT INSTRUCTION
+     ========================================== */
+
+  function selectInstruction(index) {
+
+    document
+      .querySelectorAll("#programTableBody tr")
+      .forEach(row => {
+
+        row.classList.remove("active-row");
+
+        const pointer =
+          row.querySelector(".pointer-cell");
+
+        if (pointer) {
+          pointer.textContent = "";
+        }
+
+      });
+
+    const row =
+      document.getElementById("programRow" + index);
+
+    if (row) {
+
+      row.classList.add("active-row");
+
+      const pointer =
+        row.querySelector(".pointer-cell");
+
+      if (pointer) {
+        pointer.textContent = "▶";
+      }
+
+    }
+
+    if (program[index]) {
+
+      document.getElementById("curMnemonic")
+        .textContent = program[index];
+
+      document.getElementById("curAddr")
+        .textContent =
+          "Address : " + formatHex(index);
+
+    }
+
+  }
+
+
+  /* ==========================================
+     FETCH CPU STATE
+     ========================================== */
+
+  async function getState() {
+
+    const response =
+      await fetch(API_BASE + "/api/state");
+
+    if (!response.ok) {
+      throw new Error("Unable to get CPU state");
+    }
+
+    return await response.json();
+
+  }
+
+
+  /* ==========================================
+     UPDATE CPU DISPLAY
+     ========================================== */
+
+  function updateCPUDisplay(state) {
+
+    document.getElementById("regPC")
+      .textContent =
+      formatHex(state.programCounter);
+
+    document.getElementById("regSP")
+      .textContent =
+      formatHex(state.stackPointer);
+
+    document.getElementById("regA")
+      .textContent =
+      formatHex(state.accumulator);
+
+    document.getElementById("regB")
+      .textContent =
+      "00H";
+
+    for (let i = 0; i < 8; i++) {
+
+      const element =
+        document.getElementById("regR" + i);
+
+      if (element) {
+
+        element.textContent =
+          formatHex(state.registers[i]);
+
+      }
+
+    }
+
+    document.getElementById("flagCY")
+      .textContent =
+      state.CY ? "1" : "0";
+
+    document.getElementById("flagAC")
+      .textContent =
+      state.AC ? "1" : "0";
+
+    document.getElementById("flagOV")
+      .textContent =
+      state.OV ? "1" : "0";
+
+    document.getElementById("flagP")
+      .textContent =
+      state.P ? "1" : "0";
+
+    updateFlagColor("flagCY", state.CY);
+    updateFlagColor("flagAC", state.AC);
+    updateFlagColor("flagOV", state.OV);
+    updateFlagColor("flagP", state.P);
+
+    if (program.length > 0) {
+
+      let pc = state.programCounter;
+
+      if (pc >= 0 && pc < program.length) {
+
+        selectInstruction(pc);
+
+      }
+
+    }
+
+  }
+
+
+  /* ==========================================
+     FLAG COLOR
+     ========================================== */
+
+  function updateFlagColor(id, active) {
+
+    const element =
+      document.getElementById(id);
+
+    if (active) {
+
+      element.classList.add("flag-active");
+
+    } else {
+
+      element.classList.remove("flag-active");
+
+    }
+
+  }
+
+
+  /* ==========================================
+     LOAD PROGRAM
+     ========================================== */
+
+  async function loadProgram() {
+
+    readProgram();
+
+    if (program.length === 0) {
+
+      alert("Please enter a program.");
+
+      return;
+
+    }
+
+    setStatus("LOADING", "#eab308");
+
+    try {
+
+      const response =
+        await fetch(
+          API_BASE + "/api/load",
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+              program: program
+            })
+          }
+        );
+
+      if (!response.ok) {
+        throw new Error("Load failed");
+      }
+
+      const state =
+        await response.json();
+
+      previousState = state;
+
+      updateCPUDisplay(state);
+
+      selectInstruction(0);
+
+      clearTrace();
+
+      setStatus("READY", "#22c55e");
+
+    }
+
+    catch (error) {
+
+      console.error(error);
+
+      setStatus("SERVER ERROR", "#ef4444");
+
+      alert(
+        "Cannot connect to Java server.\n\n" +
+        "Make sure SimulatorServer is running on port 8080."
+      );
+
+    }
+
+  }
+
+
+  /* ==========================================
+     RESET
+     ========================================== */
+
+  async function resetCPU() {
+
+    try {
+
+      setStatus("RESETTING", "#a855f7");
+
+      const response =
+        await fetch(
+          API_BASE + "/api/reset",
+          {
+            method: "POST"
+          }
+        );
+
+      const state =
+        await response.json();
+
+      previousState = state;
+
+      updateCPUDisplay(state);
+
+      selectInstruction(0);
+
+      clearTrace();
+
+      setStatus("RESET", "#a855f7");
+
+    }
+
+    catch (error) {
+
+      console.error(error);
+
+      setStatus("SERVER ERROR", "#ef4444");
+
+    }
+
+  }
+
+
+  /* ==========================================
+     STEP
+     ========================================== */
+
+  async function stepCPU() {
+
+    if (running) {
+      return;
+    }
+
+    try {
+
+      const before =
+        await getState();
+
+      if (before.halted) {
+
+        setStatus("HALTED", "#ef4444");
+
+        return;
+
+      }
+
+      const pc =
+        before.programCounter;
+
+      const currentInstruction =
+        program[pc] || "Unknown";
+
+      const response =
+        await fetch(
+          API_BASE + "/api/step",
+          {
+            method: "POST"
+          }
+        );
+
+      const after =
+        await response.json();
+
+      previousState = after;
+
+      updateCPUDisplay(after);
+
+      showTrace(
+        currentInstruction,
+        before,
+        after
+      );
+
+      if (after.halted) {
+
+        setStatus(
+          "HALTED",
+          "#ef4444"
+        );
+
+      } else {
+
+        setStatus(
+          "STEPPED",
+          "#eab308"
+        );
+
+      }
+
+    }
+
+    catch (error) {
+
+      console.error(error);
+
+      setStatus(
+        "SERVER ERROR",
+        "#ef4444"
+      );
+
+    }
+
+  }
+
+
+  /* ==========================================
+     RUN
+     ========================================== */
+
+  async function runCPU() {
+
+    if (running) {
+      return;
+    }
+
+    running = true;
+
+    setStatus(
+      "RUNNING",
+      "#3b82f6"
+    );
+
+    disableButtons(true);
+
+    try {
+
+      while (true) {
+
+        const state =
+          await getState();
+
+        if (state.halted) {
+          break;
+        }
+
+        await stepCPUForRun();
+
+        await sleep(400);
+
+      }
+
+      setStatus(
+        "TERMINATED",
+        "#ef4444"
+      );
+
+    }
+
+    catch (error) {
+
+      console.error(error);
+
+      setStatus(
+        "SERVER ERROR",
+        "#ef4444"
+      );
+
+    }
+
+    disableButtons(false);
+
+    running = false;
+
+  }
+
+
+  /* ==========================================
+     RUN ONE STEP
+     ========================================== */
+
+  async function stepCPUForRun() {
+
+    const before =
+      await getState();
+
+    const pc =
+      before.programCounter;
+
+    const currentInstruction =
+      program[pc] || "Unknown";
+
+    const response =
+      await fetch(
+        API_BASE + "/api/step",
+        {
+          method: "POST"
+        }
+      );
+
+    const after =
+      await response.json();
+
+    updateCPUDisplay(after);
+
+    showTrace(
+      currentInstruction,
+      before,
+      after
+    );
+
+  }
+
+
+  /* ==========================================
+     SHOW FETCH / DECODE / EXECUTE
+     ========================================== */
+
+  function showTrace(
+  instruction,
+  before,
+  after
+) {
+
+  // Show FETCH / DECODE / EXECUTE with instruction
+  document.getElementById("fetchCheck")
+    .textContent = "✓ " + instruction;
+
+  document.getElementById("decodeCheck")
+    .textContent = "✓ " + instruction;
+
+  document.getElementById("executeCheck")
+    .textContent = "✓ " + instruction;
+
+  // Activate the stages
+  document.getElementById("fetchCheck")
+    .classList.add("active");
+
+  document.getElementById("decodeCheck")
+    .classList.add("active");
+
+  document.getElementById("executeCheck")
+    .classList.add("active");
+
+  // Show changes
+  const container =
+    document.getElementById("diffContainer");
+
+  container.innerHTML = "";
+
+  addChange(
+    container,
+    "Instruction",
+    instruction,
+    instruction
+  );
+
+  // Accumulator change
+  if (
+    before.accumulator !==
+    after.accumulator
+  ) {
+    addChange(
+      container,
+      "A",
+      formatHex(before.accumulator),
+      formatHex(after.accumulator)
+    );
+  }
+
+  // Program Counter change
+  if (
+    before.programCounter !==
+    after.programCounter
+  ) {
+    addChange(
+      container,
+      "PC",
+      formatHex(before.programCounter),
+      formatHex(after.programCounter)
+    );
+  }
+
+  // Register changes
+  for (let i = 0; i < 8; i++) {
+
+    if (
+      before.registers[i] !==
+      after.registers[i]
+    ) {
+      addChange(
+        container,
+        "R" + i,
+        formatHex(before.registers[i]),
+        formatHex(after.registers[i])
+      );
+    }
+  }
+
+  // Carry flag
+  if (
+    before.CY !==
+    after.CY
+  ) {
+    addChange(
+      container,
+      "CY",
+      before.CY ? "1" : "0",
+      after.CY ? "1" : "0"
+    );
+  }
+
+  // Overflow flag
+  if (
+    before.OV !==
+    after.OV
+  ) {
+    addChange(
+      container,
+      "OV",
+      before.OV ? "1" : "0",
+      after.OV ? "1" : "0"
+    );
+  }
+
+  // If no CPU value changed
+  if (container.children.length === 1) {
+
+    const message =
+      document.createElement("div");
+
+    message.className = "message";
+
+    message.textContent =
+      "Instruction executed. No register value changed.";
+
+    container.appendChild(message);
+  }
+}
+
+  /* ==========================================
+     ADD CHANGE
+     ========================================== */
+
+  function addChange(
+    container,
+    target,
+    oldValue,
+    newValue
+  ) {
+
+    const div =
+      document.createElement("div");
+
+    div.className =
+      "diff-row";
+
+    div.innerHTML =
+      `
+      <span class="diff-target">
+        ${target}
+      </span>
+
+      <span class="diff-change">
+        ${oldValue}
+        <span class="arrow">→</span>
+        ${newValue}
+      </span>
+      `;
+
+    container.appendChild(div);
+
+  }
+
+
+  /* ==========================================
+     CLEAR TRACE
+     ========================================== */
+
+  function clearTrace() {
+
+    document.getElementById("fetchCheck")
+      .textContent = "○";
+
+    document.getElementById("decodeCheck")
+      .textContent = "○";
+
+    document.getElementById("executeCheck")
+      .textContent = "○";
+
+    document.getElementById("fetchCheck")
+      .classList.remove("active");
+
+    document.getElementById("decodeCheck")
+      .classList.remove("active");
+
+    document.getElementById("executeCheck")
+      .classList.remove("active");
+
+    document.getElementById("diffContainer")
+      .innerHTML =
+      `
+      <div class="message">
+        No instruction executed yet.
+      </div>
+      `;
+
+  }
+
+
+  /* ==========================================
+     STATUS
+     ========================================== */
+
+  function setStatus(
+    text,
+    color
+  ) {
+
+    const element =
+      document.getElementById("statusDisplay");
+
+    element.textContent =
+      text;
+
+    element.style.color =
+      color;
+
+  }
+
+
+  /* ==========================================
+     DISABLE BUTTONS
+     ========================================== */
+
+  function disableButtons(disabled) {
+
+    document.getElementById("btnLoad")
+      .disabled = disabled;
+
+    document.getElementById("btnReset")
+      .disabled = disabled;
+
+    document.getElementById("btnStep")
+      .disabled = disabled;
+
+    document.getElementById("btnRun")
+      .disabled = disabled;
+
+  }
+
+
+  /* ==========================================
+     SLEEP
+     ========================================== */
+
+  function sleep(ms) {
+
+    return new Promise(
+      resolve => setTimeout(resolve, ms)
+    );
+
+  }
+
+
+  /* ==========================================
+     BUTTON EVENTS
+     ========================================== */
+
+  document.getElementById("btnLoad")
+    .addEventListener(
+      "click",
+      loadProgram
+    );
+
+  document.getElementById("btnReset")
+    .addEventListener(
+      "click",
+      resetCPU
+    );
+
+  document.getElementById("btnStep")
+    .addEventListener(
+      "click",
+      stepCPU
+    );
+
+  document.getElementById("btnRun")
+    .addEventListener(
+      "click",
+      runCPU
+    );
+
+
+  /* ==========================================
+     INITIALIZE UI
+     ========================================== */
+
+  readProgram();
+
+  getState()
+    .then(state => {
+
+      previousState = state;
+
+      updateCPUDisplay(state);
+
+      if (!state.halted) {
+        selectInstruction(
+          state.programCounter
+        );
+      }
+
+    })
+    .catch(error => {
+
+      console.log(
+        "Java server not connected yet."
+      );
+
+      setStatus(
+        "SERVER OFFLINE",
+        "#ef4444"
+      );
+
+    });
+
+</script>
+
+</body>
+</html>
