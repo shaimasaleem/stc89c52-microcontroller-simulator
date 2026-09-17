@@ -2,11 +2,13 @@ package simulator;
 
 public class CPU {
     private int accumulator;
-    private int[] registers= {0, 0, 0, 0, 0, 0, 0, 0};
+    private int bRegister;
+    private int[] registers = {0, 0, 0, 0, 0, 0, 0, 0};
     private int programCounter=0;
     private int stackPointer = 0x07;
     private DataMemory dataMemory;
     private StackMemory stackMemory;
+    private FIFOQueue fifoQueue;
     private boolean CY=false;
     private boolean AC=false;
     private boolean OV=false;
@@ -15,9 +17,11 @@ public class CPU {
     private int[] codeMemory = new int[256];
     public CPU() {
     accumulator = 0;
+    bRegister = 0;
 
     dataMemory = new DataMemory();
     stackMemory = new StackMemory(dataMemory);
+    fifoQueue = new FIFOQueue(5);
 }
    private ProgramMemory programMemory = new ProgramMemory();
     Instruction fetch(){
@@ -39,14 +43,65 @@ public class CPU {
 
     switch (operation) {
 
-        case "MOV":
-    if (operands[0].equals("A")) {
-        accumulator = Integer.parseInt(operands[1].substring(1));
+     case "MOV":
+    try {
+
+        if (operands.length < 2) {
+            System.out.println("ERROR: MOV requires 2 operands.");
+            break;
+        }
+
+        if (operands[0].equals("A")) {
+            accumulator = Integer.parseInt(operands[1].substring(1));
+        }
+
+        else if (operands[0].equals("B")) {
+            bRegister = Integer.parseInt(operands[1].substring(1));
+        }
+
+        else if (operands[0].startsWith("R")) {
+            int registerNumber =
+                    Integer.parseInt(operands[0].substring(1));
+
+            if (registerNumber < 0 || registerNumber > 7) {
+                System.out.println("ERROR: Invalid register "
+                        + operands[0]);
+                break;
+            }
+
+            registers[registerNumber] =
+                    Integer.parseInt(operands[1].substring(1));
+        }
+
+        else if (operands[0].endsWith("H")) {
+
+            int address = Integer.parseInt(
+                    operands[0].substring(
+                            0, operands[0].length() - 1), 16);
+
+            if (address < 0 || address > 0xFF) {
+                System.out.println(
+                        "ERROR: Invalid memory address "
+                        + operands[0]);
+                break;
+            }
+
+            int value =
+                    Integer.parseInt(operands[1].substring(1));
+
+            dataMemory.write(address, value);
+        }
+
+        else {
+            System.out.println(
+                    "ERROR: Invalid MOV destination "
+                    + operands[0]);
+        }
+
+    } catch (NumberFormatException e) {
+        System.out.println("ERROR: Invalid value in MOV.");
     }
-    else if (operands[0].startsWith("R")) {
-        int registerNumber = Integer.parseInt(operands[0].substring(1));
-        registers[registerNumber] = Integer.parseInt(operands[1].substring(1));
-    }
+
     break;
         case "MOVC":
     if (operands[0].equals("A")) {
@@ -95,6 +150,24 @@ public class CPU {
         case "HALT":
             halted = true;
     break;
+        case "PUSH":
+            int pushValue = Integer.parseInt(operands[0].substring(1));
+            stackMemory.push(pushValue);
+    break;
+
+        case "POP":
+    if (operands[0].equals("A")) {
+        accumulator = stackMemory.pop();
+    }
+    break;
+        case "ENQUEUE":
+            int enqueueValue = Integer.parseInt(operands[0].substring(1));
+            fifoQueue.enqueue(enqueueValue);
+    break;
+
+        case "DEQUEUE":
+            fifoQueue.dequeue();
+    break;
         default:
             System.out.println("Invalid instruction " + operation);
             break;
@@ -104,6 +177,9 @@ public class CPU {
     public int getAccumulator() {
         return accumulator;
     }
+    public int getBRegister() {
+    return bRegister;
+}
     public int getProgramCounter() {
     return programCounter;
 }
@@ -193,6 +269,7 @@ public boolean getOV() {
 }
 public void reset() {
     accumulator = 0;
+    bRegister = 0;
 
     for (int i = 0; i < registers.length; i++) {
         registers[i] = 0;
@@ -200,7 +277,8 @@ public void reset() {
 
     programCounter = 0;
     stackMemory.reset();
-
+    fifoQueue.reset();
+    dataMemory.reset();
     CY = false;
     AC = false;
     OV = false;
@@ -231,5 +309,31 @@ public void push(int value) {
 
 public int pop() {
     return stackMemory.pop();
+}
+public void enqueue(int value) {
+    fifoQueue.enqueue(value);
+}
+
+public int dequeue() {
+    return fifoQueue.dequeue();
+}
+public FIFOQueue getFIFOQueue() {
+    return fifoQueue;
+}
+public void writeMemory(int address, int value) {
+    dataMemory.write(address, value);
+}
+
+public int readMemory(int address) {
+    return dataMemory.read(address);
+}
+public int[] getDataMemory() {
+    int[] memory = new int[256];
+
+    for (int i = 0; i < 256; i++) {
+        memory[i] = dataMemory.read(i);
+    }
+
+    return memory;
 }
 }
