@@ -11,7 +11,7 @@ import java.nio.charset.StandardCharsets;
 public class SimulatorServer {
 
     private static CPU cpu = new CPU();
-
+    private static FIFOQueue fifoQueue = cpu.getFIFOQueue();
     private static void addCorsHeaders(HttpExchange exchange) {
 
     exchange.getResponseHeaders().set(
@@ -71,7 +71,15 @@ private static boolean handleOptions(HttpExchange exchange)
 
         server.createContext("/api/run",
                 SimulatorServer::handleRun);
+        server.createContext("/api/enqueue",
+                SimulatorServer::handleEnqueue);
+        server.createContext("/api/dequeue",
+                SimulatorServer::handleDequeue);
+        server.createContext("/api/push",
+                SimulatorServer::handlePush);
 
+        server.createContext("/api/pop",
+                SimulatorServer::handlePop);
         // Home page
         server.createContext("/",
                 SimulatorServer::handleHome);
@@ -372,7 +380,168 @@ private static Instruction[] parseProgram(String body) {
         );
     }
 
+// =========================================================
+// ENQUEUE
+// =========================================================
 
+private static void handleEnqueue(HttpExchange exchange)
+        throws IOException {
+
+    if (handleOptions(exchange)) {
+        return;
+    }
+
+    if (!exchange.getRequestMethod()
+            .equalsIgnoreCase("POST")) {
+
+        sendResponse(
+                exchange,
+                405,
+                "Method Not Allowed"
+        );
+
+        return;
+    }
+
+    String query =
+            exchange.getRequestURI().getQuery();
+
+    if (query == null ||
+            !query.startsWith("value=")) {
+
+        sendResponse(
+                exchange,
+                400,
+                "Missing value"
+        );
+
+        return;
+    }
+
+    int value =
+            Integer.parseInt(query.substring(6));
+
+    cpu.enqueue(value);
+
+    sendResponse(
+            exchange,
+            200,
+            "Enqueued: " + value
+    );
+}
+// =========================================================
+// DEQUEUE
+// =========================================================
+
+private static void handleDequeue(HttpExchange exchange)
+        throws IOException {
+
+    if (handleOptions(exchange)) {
+        return;
+    }
+
+    if (!exchange.getRequestMethod()
+            .equalsIgnoreCase("POST")) {
+
+        sendResponse(
+                exchange,
+                405,
+                "Method Not Allowed"
+        );
+
+        return;
+    }
+
+    int value = cpu.dequeue();
+
+    sendResponse(
+            exchange,
+            200,
+            "Dequeued: " + value
+    );
+}
+private static void handlePush(HttpExchange exchange)
+        throws IOException {
+
+    if (handleOptions(exchange)) {
+        return;
+    }
+
+    if (!exchange.getRequestMethod()
+            .equalsIgnoreCase("POST")) {
+
+        sendResponse(
+                exchange,
+                405,
+                "Method Not Allowed"
+        );
+
+        return;
+    }
+
+    String query =
+            exchange.getRequestURI().getQuery();
+
+    if (query == null ||
+            !query.startsWith("value=")) {
+
+        sendResponse(
+                exchange,
+                400,
+                "Missing value"
+        );
+
+        return;
+    }
+
+    try {
+
+        int value =
+                Integer.parseInt(query.substring(6));
+
+        cpu.push(value);
+
+        sendResponse(
+                exchange,
+                200,
+                "Pushed: " + value
+        );
+
+    } catch (NumberFormatException e) {
+
+        sendResponse(
+                exchange,
+                400,
+                "Invalid value"
+        );
+
+    } catch (IllegalStateException e) {
+
+        sendResponse(
+                exchange,
+                400,
+                e.getMessage()
+        );
+    }
+}
+private static void handlePop(HttpExchange exchange)
+        throws IOException {
+
+    if (handleOptions(exchange)) {
+        return;
+    }
+
+    try {
+
+        int value = cpu.pop();
+
+        sendResponse(exchange, 200, "Popped: " + value);
+
+    } catch (IllegalStateException e) {
+
+        sendResponse(exchange, 400, e.getMessage());
+    }
+}
     // =========================================================
     // CREATE CPU STATE JSON
     // =========================================================
@@ -386,6 +555,11 @@ private static Instruction[] parseProgram(String body) {
         // Accumulator
         json.append("\"accumulator\":");
         json.append(cpu.getAccumulator());
+        json.append(",");
+
+        // B Register
+        json.append("\"bRegister\":");
+        json.append(cpu.getBRegister());
         json.append(",");
 
         // Program Counter
@@ -430,12 +604,44 @@ private static Instruction[] parseProgram(String body) {
         json.append(",");
 
         // Halted
+        // Halted
         json.append("\"halted\":");
         json.append(cpu.isHalted());
 
-        json.append("}");
+        // FIFO Queue
+        json.append(",\"queueSize\":");
+        json.append(fifoQueue.getCount());
 
-        return json.toString();
+        json.append(",\"queue\":[");
+
+        int[] values = fifoQueue.getQueueValues();
+
+        for (int i = 0; i < values.length; i++) {
+         if (i > 0) {
+        json.append(",");
+        }
+         json.append(values[i]);
+}
+
+json.append("]");
+
+// Data Memory
+json.append(",\"memory\":[");
+
+int[] memory = cpu.getDataMemory();
+
+for (int i = 0; i < memory.length; i++) {
+    json.append(memory[i]);
+
+    if (i < memory.length - 1) {
+        json.append(",");
+    }
+}
+
+json.append("]");
+
+json.append("}");
+return json.toString();
     }
 
 
