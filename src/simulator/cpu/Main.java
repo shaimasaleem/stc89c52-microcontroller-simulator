@@ -5,7 +5,23 @@ public class Main {
 
         System.out.println("STC89C52 Simulator Started");
 
-        CPU cpu = new CPU();
+       CPU cpu = new CPU();
+
+        System.out.println("\n----- FIFO QUEUE TEST -----");
+
+        cpu.enqueue(10);
+        cpu.enqueue(20);
+        cpu.enqueue(30);
+        cpu.enqueue(40);
+        cpu.enqueue(50);
+        cpu.enqueue(60);
+
+        System.out.println("Dequeued: " + cpu.dequeue());
+        System.out.println("Dequeued: " + cpu.dequeue());
+        System.out.println("Dequeued: " + cpu.dequeue());
+        System.out.println("Dequeued: " + cpu.dequeue());
+        System.out.println("Dequeued: " + cpu.dequeue());
+        System.out.println("Dequeued: " + cpu.dequeue());
 
         Instruction[] program = {
             new Instruction("MOV", new String[]{"A", "#10"}),

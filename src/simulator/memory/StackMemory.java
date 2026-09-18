@@ -38,3 +38,24 @@ public class StackMemory {
     sp = 0x07;
 }
 }
+   public void displayStack() {
+
+        System.out.println("----- STACK -----");
+
+        System.out.println("SP = " +
+                Integer.toHexString(sp).toUpperCase());
+
+        if (sp == 0x07) {
+            System.out.println("Stack is empty.");
+            return;
+        }
+
+        for (int i = sp; i > 0x07; i--) {
+
+            System.out.println("Address " +
+                    Integer.toHexString(i).toUpperCase() +
+                    " = " +
+                    Integer.toHexString(memory.read(i)).toUpperCase());
+        }
+    }
+}
