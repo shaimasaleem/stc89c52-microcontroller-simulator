@@ -1,64 +1,59 @@
+
 package simulator;
 
+import simulator.integration.BlockingQueueIPC;
+
 public class Main {
+
     public static void main(String[] args) {
 
-        System.out.println("STC89C52 Simulator Started");
+        System.out.println("STC89C52 Week 4 Simulator Started");
 
-       CPU cpu = new CPU();
+        BlockingQueueIPC ipc = new BlockingQueueIPC();
 
-        System.out.println("\n----- FIFO QUEUE TEST -----");
+        // Create Core
+        Core core = new Core(
+                ipc.getCommandQueue(),
+                ipc.getResponseQueue(),
+                ipc.getLogQueue()
+        );
 
-        cpu.enqueue(10);
-        cpu.enqueue(20);
-        cpu.enqueue(30);
-        cpu.enqueue(40);
-        cpu.enqueue(50);
-        cpu.enqueue(60);
+        // Create Logger
+        Logger logger = new Logger(
+                ipc.getLogQueue()
+        );
 
-        System.out.println("Dequeued: " + cpu.dequeue());
-        System.out.println("Dequeued: " + cpu.dequeue());
-        System.out.println("Dequeued: " + cpu.dequeue());
-        System.out.println("Dequeued: " + cpu.dequeue());
-        System.out.println("Dequeued: " + cpu.dequeue());
-        System.out.println("Dequeued: " + cpu.dequeue());
+        // Create UI Server
+        SimulatorServer server = new SimulatorServer(
+                ipc.getCommandQueue(),
+                ipc.getResponseQueue()
+        );
 
-        Instruction[] program = {
-            new Instruction("MOV", new String[]{"A", "#10"}),
-            new Instruction("MOVC", new String[]{"A", "10"}),
-            new Instruction("ADD", new String[]{"A", "#5"}),
-            new Instruction("SUB", new String[]{"A", "#2"}),
-            new Instruction("ANL", new String[]{"A", "#3"}),
-            new Instruction("INC", new String[]{"A"}),
-            new Instruction("SJMP", new String[]{"7"}),
-            new Instruction("HALT", new String[]{})
-        };
+        // Start Core
+        Thread coreThread = new Thread(core, "Core-Thread");
+        coreThread.start();
 
-        cpu.setCodeMemory(10, 3);
-        cpu.loadProgram(program);
+        // Start Logger
+        Thread loggerThread = new Thread(logger, "Logger-Thread");
+        loggerThread.start();
 
-        cpu.run();
+        // Start UI Server
+       // Start UI Server
+try {
+    server.startServer();
 
-        cpu.displayState();
+    // Automatically open simulator in browser
+    new ProcessBuilder(
+        "powershell.exe",
+        "-NoProfile",
+        "-Command",
+        "Start-Process 'http://localhost:8080'"
+    ).start();
 
-        System.out.println("\n----- STACK TEST -----");
+    System.out.println("Opening simulator in browser...");
 
-        cpu.push(0x15);
-
-        System.out.println("After PUSH 15H, SP = "
-                + Integer.toHexString(cpu.getStackPointer()).toUpperCase());
-
-        cpu.push(0x20);
-
-        System.out.println("After PUSH 20H, SP = "
-                + Integer.toHexString(cpu.getStackPointer()).toUpperCase());
-
-        int value = cpu.pop();
-
-        System.out.println("POP value = "
-                + Integer.toHexString(value).toUpperCase());
-
-        System.out.println("After POP, SP = "
-                + Integer.toHexString(cpu.getStackPointer()).toUpperCase());
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
     }
 }
