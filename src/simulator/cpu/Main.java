@@ -1,64 +1,82 @@
+
 package simulator;
 
+import java.io.File;
+import java.io.IOException;
+
 public class Main {
-    public static void main(String[] args) {
 
-        System.out.println("STC89C52 Simulator Started");
+    public static void main(String[] args) throws Exception {
 
-       CPU cpu = new CPU();
+        // Start the requested process
+        if (args.length > 0) {
 
-        System.out.println("\n----- FIFO QUEUE TEST -----");
+            switch (args[0].toLowerCase()) {
 
-        cpu.enqueue(10);
-        cpu.enqueue(20);
-        cpu.enqueue(30);
-        cpu.enqueue(40);
-        cpu.enqueue(50);
-        cpu.enqueue(60);
+                case "logger":
+                    Logger.startSocketServer();
+                    break;
 
-        System.out.println("Dequeued: " + cpu.dequeue());
-        System.out.println("Dequeued: " + cpu.dequeue());
-        System.out.println("Dequeued: " + cpu.dequeue());
-        System.out.println("Dequeued: " + cpu.dequeue());
-        System.out.println("Dequeued: " + cpu.dequeue());
-        System.out.println("Dequeued: " + cpu.dequeue());
+                case "core":
+                    Core.startSocketServer();
+                    break;
 
-        Instruction[] program = {
-            new Instruction("MOV", new String[]{"A", "#10"}),
-            new Instruction("MOVC", new String[]{"A", "10"}),
-            new Instruction("ADD", new String[]{"A", "#5"}),
-            new Instruction("SUB", new String[]{"A", "#2"}),
-            new Instruction("ANL", new String[]{"A", "#3"}),
-            new Instruction("INC", new String[]{"A"}),
-            new Instruction("SJMP", new String[]{"7"}),
-            new Instruction("HALT", new String[]{})
-        };
+                case "ui":
+                    SimulatorServer.startSocketServer();
+                    break;
 
-        cpu.setCodeMemory(10, 3);
-        cpu.loadProgram(program);
+                default:
+                    System.out.println("Unknown process: " + args[0]);
+            }
 
-        cpu.run();
+            return;
+        }
 
-        cpu.displayState();
+        System.out.println("================================");
+        System.out.println(" STC89C52 MICROCONTROLLER");
+        System.out.println(" MULTIPROCESS SIMULATOR");
+        System.out.println("================================");
 
-        System.out.println("\n----- STACK TEST -----");
+        // Start Logger process
+        launch("logger");
+        Thread.sleep(500);
 
-        cpu.push(0x15);
+        // Start Core process
+        launch("core");
+        Thread.sleep(500);
 
-        System.out.println("After PUSH 15H, SP = "
-                + Integer.toHexString(cpu.getStackPointer()).toUpperCase());
+        // Start UI process
+        launch("ui");
 
-        cpu.push(0x20);
+        System.out.println("Three independent processes launched.");
+        System.out.println("Open http://localhost:8080");
+    }
 
-        System.out.println("After PUSH 20H, SP = "
-                + Integer.toHexString(cpu.getStackPointer()).toUpperCase());
+    private static void launch(String role) throws IOException {
 
-        int value = cpu.pop();
+        String javaPath =
+                System.getProperty("java.home")
+                + File.separator
+                + "bin"
+                + File.separator
+                + "java";
 
-        System.out.println("POP value = "
-                + Integer.toHexString(value).toUpperCase());
+        String classPath =
+                System.getProperty("java.class.path");
 
-        System.out.println("After POP, SP = "
-                + Integer.toHexString(cpu.getStackPointer()).toUpperCase());
+        ProcessBuilder builder = new ProcessBuilder(
+                javaPath,
+                "-cp",
+                classPath,
+                "simulator.Main",
+                role
+        );
+
+        builder.inheritIO();
+
+        builder.start();
+
+        System.out.println(role.toUpperCase()
+                + " process launched.");
     }
 }
