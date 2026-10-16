@@ -58,6 +58,7 @@ public class CPU {
         else if (operands[0].equals("B")) {
             bRegister = Integer.parseInt(operands[1].substring(1));
         }
+        
 
         else if (operands[0].startsWith("R")) {
             int registerNumber =
