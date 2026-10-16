@@ -7,161 +7,247 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.BlockingQueue;
 
 public class SimulatorServer {
 
-    private static CPU cpu = new CPU();
-    private static FIFOQueue fifoQueue = cpu.getFIFOQueue();
-    private static void addCorsHeaders(HttpExchange exchange) {
+    // =====================================================
+    // QUEUES
+    // =====================================================
+    // commandQueue  -> sends commands to Core
+    // responseQueue -> receives responses from Core
 
-    exchange.getResponseHeaders().set(
-        "Access-Control-Allow-Origin",
-        "*"
-    );
+    private BlockingQueue<String> commandQueue;
+    private BlockingQueue<String> responseQueue;
 
-    exchange.getResponseHeaders().set(
-        "Access-Control-Allow-Methods",
-        "GET, POST, OPTIONS"
-    );
 
-    exchange.getResponseHeaders().set(
-        "Access-Control-Allow-Headers",
-        "Content-Type"
-    );
-}
+    // =====================================================
+    // CONSTRUCTOR
+    // =====================================================
+    // Main.java will provide the queues during integration.
 
-private static boolean handleOptions(HttpExchange exchange)
-        throws IOException {
+    public SimulatorServer(
+            BlockingQueue<String> commandQueue,
+            BlockingQueue<String> responseQueue) {
 
-    addCorsHeaders(exchange);
-
-    if (exchange.getRequestMethod()
-            .equalsIgnoreCase("OPTIONS")) {
-
-        exchange.sendResponseHeaders(204, -1);
-        exchange.close();
-
-        return true;
+        this.commandQueue = commandQueue;
+        this.responseQueue = responseQueue;
     }
 
-    return false;
-}
+
+    // =====================================================
+    // MAIN
+    // =====================================================
+
     public static void main(String[] args) throws Exception {
 
-        System.out.println("Starting STC89C52 Simulator Server...");
+        /*
+         * Temporary queues for integration/testing.
+         *
+         * Main.java can provide the actual queues later.
+         */
 
-        loadDemoProgram();
+        BlockingQueue<String> commandQueue =
+                new java.util.concurrent.LinkedBlockingQueue<>();
 
-        HttpServer server = HttpServer.create(
-                new InetSocketAddress(8080), 0
+        BlockingQueue<String> responseQueue =
+                new java.util.concurrent.LinkedBlockingQueue<>();
+
+
+        SimulatorServer simulatorServer =
+                new SimulatorServer(
+                        commandQueue,
+                        responseQueue
+                );
+
+
+        simulatorServer.startServer();
+    }
+
+
+    // =====================================================
+    // START SERVER
+    // =====================================================
+
+    public void startServer() throws Exception {
+
+        System.out.println(
+                "Starting STC89C52 Simulator UI Server..."
         );
 
-        // API endpoints
-        server.createContext("/api/state",
-                SimulatorServer::handleState);
 
-        server.createContext("/api/load",
-                SimulatorServer::handleLoad);
+        HttpServer server = HttpServer.create(
+                new InetSocketAddress(8080),
+                0
+        );
 
-        server.createContext("/api/reset",
-                SimulatorServer::handleReset);
 
-        server.createContext("/api/step",
-                SimulatorServer::handleStep);
+        // =================================================
+        // API ENDPOINTS
+        // =================================================
 
-        server.createContext("/api/run",
-                SimulatorServer::handleRun);
-        server.createContext("/api/enqueue",
-                SimulatorServer::handleEnqueue);
-        server.createContext("/api/dequeue",
-                SimulatorServer::handleDequeue);
-        server.createContext("/api/push",
-                SimulatorServer::handlePush);
+        server.createContext(
+                "/api/state",
+                this::handleState
+        );
 
-        server.createContext("/api/pop",
-                SimulatorServer::handlePop);
+        server.createContext(
+                "/api/load",
+                this::handleLoad
+        );
+
+        server.createContext(
+                "/api/reset",
+                this::handleReset
+        );
+
+        server.createContext(
+                "/api/step",
+                this::handleStep
+        );
+
+        server.createContext(
+                "/api/run",
+                this::handleRun
+        );
+
+        server.createContext(
+                "/api/enqueue",
+                this::handleEnqueue
+        );
+
+        server.createContext(
+                "/api/dequeue",
+                this::handleDequeue
+        );
+
+        server.createContext(
+                "/api/push",
+                this::handlePush
+        );
+
+        server.createContext(
+                "/api/pop",
+                this::handlePop
+        );
+
+
         // Home page
-        server.createContext("/",
-                SimulatorServer::handleHome);
+        server.createContext(
+                "/",
+                this::handleHome
+        );
+
 
         server.start();
 
+
         System.out.println("----------------------------------");
-        System.out.println("STC89C52 Simulator Server Started");
-        System.out.println("Open: http://localhost:8080");
+        System.out.println(
+                "STC89C52 Simulator UI Server Started"
+        );
+        System.out.println(
+                "Open: http://localhost:8080"
+        );
+        System.out.println(
+                "IPC: BlockingQueue"
+        );
         System.out.println("----------------------------------");
+
 
         Thread.currentThread().join();
     }
 
 
-    // =========================================================
-    // LOAD DEMO PROGRAM
-    // =========================================================
+    // =====================================================
+    // SEND COMMAND TO CORE
+    // =====================================================
+    // UI sends the command through BlockingQueue.
+    //
+    // STEP
+    // RUN
+    // RESET
+    // STATE
+    // LOAD
+    // ENQUEUE
+    // DEQUEUE
+    // PUSH
+    // POP
 
-    private static void loadDemoProgram() {
+   
+private synchronized String sendCommand(String command)
+        throws InterruptedException {
 
-        Instruction[] program = {
+    commandQueue.put(command);
 
-                new Instruction(
-                        "MOV",
-                        new String[]{"A", "#10"}
-                ),
+    // Wait for the response from Core.
+    return responseQueue.take();
+}
 
-                new Instruction(
-                        "MOVC",
-                        new String[]{"A", "10"}
-                ),
 
-                new Instruction(
-                        "ADD",
-                        new String[]{"A", "#5"}
-                ),
+    // =====================================================
+    // CORS
+    // =====================================================
 
-                new Instruction(
-                        "SUB",
-                        new String[]{"A", "#2"}
-                ),
+    private void addCorsHeaders(
+            HttpExchange exchange) {
 
-                new Instruction(
-                        "ANL",
-                        new String[]{"A", "#3"}
-                ),
+        exchange.getResponseHeaders().set(
+                "Access-Control-Allow-Origin",
+                "*"
+        );
 
-                new Instruction(
-                        "INC",
-                        new String[]{"A"}
-                ),
+        exchange.getResponseHeaders().set(
+                "Access-Control-Allow-Methods",
+                "GET, POST, OPTIONS"
+        );
 
-                new Instruction(
-                        "SJMP",
-                        new String[]{"7"}
-                ),
-
-                new Instruction(
-                        "HALT",
-                        new String[]{}
-                )
-        };
-
-        // Code memory value
-        cpu.setCodeMemory(10, 3);
-
-        // Load program
-        cpu.loadProgram(program);
+        exchange.getResponseHeaders().set(
+                "Access-Control-Allow-Headers",
+                "Content-Type"
+        );
     }
 
 
-    // =========================================================
-    // STATE
-    // =========================================================
+    // =====================================================
+    // OPTIONS
+    // =====================================================
 
-    private static void handleState(HttpExchange exchange)
+    private boolean handleOptions(
+            HttpExchange exchange)
+            throws IOException {
+
+        addCorsHeaders(exchange);
+
+        if (exchange.getRequestMethod()
+                .equalsIgnoreCase("OPTIONS")) {
+
+            exchange.sendResponseHeaders(
+                    204,
+                    -1
+            );
+
+            exchange.close();
+
+            return true;
+        }
+
+        return false;
+    }
+
+
+    // =====================================================
+    // STATE
+    // =====================================================
+
+    private void handleState(
+            HttpExchange exchange)
             throws IOException {
 
         if (handleOptions(exchange)) {
-             return;
+            return;
         }
+
 
         if (!exchange.getRequestMethod()
                 .equalsIgnoreCase("GET")) {
@@ -175,17 +261,40 @@ private static boolean handleOptions(HttpExchange exchange)
             return;
         }
 
-        String response = createStateJSON();
 
-        sendJSON(exchange, response);
+        try {
+
+            /*
+             * Ask Core for current CPU state.
+             */
+
+            String response =
+                    sendCommand("STATE");
+
+
+            sendJSON(
+                    exchange,
+                    response
+            );
+
+        } catch (InterruptedException e) {
+
+            Thread.currentThread().interrupt();
+
+            sendResponse(
+                    exchange,
+                    500,
+                    "Core response interrupted"
+            );
+        }
     }
 
 
-    // =========================================================
-// LOAD
-// =========================================================
+    // =====================================================
+    // LOAD PROGRAM
+    // =====================================================
 
-private static void handleLoad(HttpExchange exchange)
+   private void handleLoad(HttpExchange exchange)
         throws IOException {
 
     if (handleOptions(exchange)) {
@@ -195,99 +304,46 @@ private static void handleLoad(HttpExchange exchange)
     if (!exchange.getRequestMethod()
             .equalsIgnoreCase("POST")) {
 
-        sendResponse(
-            exchange,
-            405,
-            "Method Not Allowed"
-        );
-
+        sendResponse(exchange, 405, "Method Not Allowed");
         return;
     }
 
     String body = new String(
-        exchange.getRequestBody().readAllBytes(),
-        StandardCharsets.UTF_8
+            exchange.getRequestBody().readAllBytes(),
+            StandardCharsets.UTF_8
     );
 
-    Instruction[] program = parseProgram(body);
+    String command = "LOAD|" + body;
 
-    cpu.reset();
+    System.out.println("[UI RECEIVED PROGRAM] " + body);
+    System.out.println("[UI SENDING TO CORE] " + command);
 
-    // Required for MOVC A,10
-    cpu.setCodeMemory(10, 3);
+    try {
+        String response = sendCommand(command);
+        sendJSON(exchange, response);
 
-    cpu.loadProgram(program);
+    } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
 
-    sendJSON(
-        exchange,
-        createStateJSON()
-    );
-}
-// =========================================================
-// PARSE PROGRAM FROM HTML
-// =========================================================
-
-private static Instruction[] parseProgram(String body) {
-
-    int start = body.indexOf("[");
-    int end = body.lastIndexOf("]");
-
-    if (start == -1 || end == -1) {
-        return new Instruction[0];
+        sendResponse(
+                exchange,
+                500,
+                "Core response interrupted"
+        );
     }
-
-    String programText = body.substring(start + 1, end);
-
-    String[] instructionStrings =
-            programText.split("\",\"");
-
-    Instruction[] program =
-            new Instruction[instructionStrings.length];
-
-    for (int i = 0; i < instructionStrings.length; i++) {
-
-        String instructionText =
-                instructionStrings[i];
-
-        instructionText =
-                instructionText
-                        .replace("\"", "")
-                        .trim();
-
-        String[] parts =
-                instructionText.split("\\s+");
-
-        String operation = parts[0];
-
-        String[] operands;
-
-        if (parts.length > 1) {
-            operands = parts[1].split(",");
-        } else {
-            operands = new String[0];
-        }
-
-        program[i] =
-                new Instruction(
-                        operation,
-                        operands
-                );
-    }
-
-    return program;
 }
-
-
-    // =========================================================
+    // =====================================================
     // RESET
-    // =========================================================
+    // =====================================================
 
-    private static void handleReset(HttpExchange exchange)
+    private void handleReset(
+            HttpExchange exchange)
             throws IOException {
 
         if (handleOptions(exchange)) {
-    return;
-}
+            return;
+        }
+
 
         if (!exchange.getRequestMethod()
                 .equalsIgnoreCase("POST")) {
@@ -301,25 +357,43 @@ private static Instruction[] parseProgram(String body) {
             return;
         }
 
-        cpu.reset();
 
-        sendJSON(
-                exchange,
-                createStateJSON()
-        );
+        try {
+
+            String response =
+                    sendCommand("RESET");
+
+
+            sendJSON(
+                    exchange,
+                    response
+            );
+
+        } catch (InterruptedException e) {
+
+            Thread.currentThread().interrupt();
+
+            sendResponse(
+                    exchange,
+                    500,
+                    "Core response interrupted"
+            );
+        }
     }
 
 
-    // =========================================================
+    // =====================================================
     // STEP
-    // =========================================================
+    // =====================================================
 
-    private static void handleStep(HttpExchange exchange)
+    private void handleStep(
+            HttpExchange exchange)
             throws IOException {
 
         if (handleOptions(exchange)) {
-    return;
-}
+            return;
+        }
+
 
         if (!exchange.getRequestMethod()
                 .equalsIgnoreCase("POST")) {
@@ -333,29 +407,48 @@ private static Instruction[] parseProgram(String body) {
             return;
         }
 
-        if (!cpu.isHalted()) {
 
-            // FETCH → DECODE → EXECUTE
-            cpu.step();
+        try {
 
+            /*
+             * Send STEP command to Core.
+             */
+
+            String response =
+                    sendCommand("STEP");
+
+
+            sendJSON(
+                    exchange,
+                    response
+            );
+
+        } catch (InterruptedException e) {
+
+            Thread.currentThread().interrupt();
+
+            sendResponse(
+                    exchange,
+                    500,
+                    "Core response interrupted"
+            );
         }
-
-        sendJSON(
-                exchange,
-                createStateJSON()
-        );
     }
 
 
-    // =========================================================
+    // =====================================================
     // RUN
-    // =========================================================
+    // =====================================================
 
-    private static void handleRun(HttpExchange exchange)
+    private void handleRun(
+            HttpExchange exchange)
             throws IOException {
-                if (handleOptions(exchange)) {
-    return;
-}
+
+        if (handleOptions(exchange)) {
+            return;
+        }
+
+
         if (!exchange.getRequestMethod()
                 .equalsIgnoreCase("POST")) {
 
@@ -368,380 +461,391 @@ private static Instruction[] parseProgram(String body) {
             return;
         }
 
-        if (!cpu.isHalted()) {
 
-            cpu.run();
+        try {
 
+            /*
+             * Send RUN command to Core.
+             */
+
+            String response =
+                    sendCommand("RUN");
+
+
+            sendJSON(
+                    exchange,
+                    response
+            );
+
+        } catch (InterruptedException e) {
+
+            Thread.currentThread().interrupt();
+
+            sendResponse(
+                    exchange,
+                    500,
+                    "Core response interrupted"
+            );
         }
-
-        sendJSON(
-                exchange,
-                createStateJSON()
-        );
-    }
-
-// =========================================================
-// ENQUEUE
-// =========================================================
-
-private static void handleEnqueue(HttpExchange exchange)
-        throws IOException {
-
-    if (handleOptions(exchange)) {
-        return;
-    }
-
-    if (!exchange.getRequestMethod()
-            .equalsIgnoreCase("POST")) {
-
-        sendResponse(
-                exchange,
-                405,
-                "Method Not Allowed"
-        );
-
-        return;
-    }
-
-    String query =
-            exchange.getRequestURI().getQuery();
-
-    if (query == null ||
-            !query.startsWith("value=")) {
-
-        sendResponse(
-                exchange,
-                400,
-                "Missing value"
-        );
-
-        return;
-    }
-
-    int value =
-            Integer.parseInt(query.substring(6));
-
-    cpu.enqueue(value);
-
-    sendResponse(
-            exchange,
-            200,
-            "Enqueued: " + value
-    );
-}
-// =========================================================
-// DEQUEUE
-// =========================================================
-
-private static void handleDequeue(HttpExchange exchange)
-        throws IOException {
-
-    if (handleOptions(exchange)) {
-        return;
-    }
-
-    if (!exchange.getRequestMethod()
-            .equalsIgnoreCase("POST")) {
-
-        sendResponse(
-                exchange,
-                405,
-                "Method Not Allowed"
-        );
-
-        return;
-    }
-
-    int value = cpu.dequeue();
-
-    sendResponse(
-            exchange,
-            200,
-            "Dequeued: " + value
-    );
-}
-private static void handlePush(HttpExchange exchange)
-        throws IOException {
-
-    if (handleOptions(exchange)) {
-        return;
-    }
-
-    if (!exchange.getRequestMethod()
-            .equalsIgnoreCase("POST")) {
-
-        sendResponse(
-                exchange,
-                405,
-                "Method Not Allowed"
-        );
-
-        return;
-    }
-
-    String query =
-            exchange.getRequestURI().getQuery();
-
-    if (query == null ||
-            !query.startsWith("value=")) {
-
-        sendResponse(
-                exchange,
-                400,
-                "Missing value"
-        );
-
-        return;
-    }
-
-    try {
-
-        int value =
-                Integer.parseInt(query.substring(6));
-
-        cpu.push(value);
-
-        sendResponse(
-                exchange,
-                200,
-                "Pushed: " + value
-        );
-
-    } catch (NumberFormatException e) {
-
-        sendResponse(
-                exchange,
-                400,
-                "Invalid value"
-        );
-
-    } catch (IllegalStateException e) {
-
-        sendResponse(
-                exchange,
-                400,
-                e.getMessage()
-        );
-    }
-}
-private static void handlePop(HttpExchange exchange)
-        throws IOException {
-
-    if (handleOptions(exchange)) {
-        return;
-    }
-
-    try {
-
-        int value = cpu.pop();
-
-        sendResponse(exchange, 200, "Popped: " + value);
-
-    } catch (IllegalStateException e) {
-
-        sendResponse(exchange, 400, e.getMessage());
-    }
-}
-    // =========================================================
-    // CREATE CPU STATE JSON
-    // =========================================================
-
-    private static String createStateJSON() {
-
-        StringBuilder json = new StringBuilder();
-
-        json.append("{");
-
-        // Accumulator
-        json.append("\"accumulator\":");
-        json.append(cpu.getAccumulator());
-        json.append(",");
-
-        // B Register
-        json.append("\"bRegister\":");
-        json.append(cpu.getBRegister());
-        json.append(",");
-
-        // Program Counter
-        json.append("\"programCounter\":");
-        json.append(cpu.getProgramCounter());
-        json.append(",");
-
-        // Stack Pointer
-        json.append("\"stackPointer\":");
-        json.append(cpu.getStackPointer());
-        json.append(",");
-
-        // Registers
-        json.append("\"registers\":[");
-
-        for (int i = 0; i < 8; i++) {
-
-            json.append(cpu.getRegister(i));
-
-            if (i < 7) {
-                json.append(",");
-            }
-        }
-
-        json.append("],");
-
-        // Flags
-        json.append("\"CY\":");
-        json.append(cpu.getCY());
-        json.append(",");
-
-        json.append("\"AC\":");
-        json.append(cpu.getAC());
-        json.append(",");
-
-        json.append("\"OV\":");
-        json.append(cpu.getOV());
-        json.append(",");
-
-        json.append("\"P\":");
-        json.append(cpu.getP());
-        json.append(",");
-
-        // Halted
-        // Halted
-        json.append("\"halted\":");
-        json.append(cpu.isHalted());
-
-        // FIFO Queue
-        json.append(",\"queueSize\":");
-        json.append(fifoQueue.getCount());
-
-        json.append(",\"queue\":[");
-
-        int[] values = fifoQueue.getQueueValues();
-
-        for (int i = 0; i < values.length; i++) {
-         if (i > 0) {
-        json.append(",");
-        }
-         json.append(values[i]);
-}
-
-json.append("]");
-
-// Data Memory
-json.append(",\"memory\":[");
-
-int[] memory = cpu.getDataMemory();
-
-for (int i = 0; i < memory.length; i++) {
-    json.append(memory[i]);
-
-    if (i < memory.length - 1) {
-        json.append(",");
-    }
-}
-
-json.append("]");
-
-json.append("}");
-return json.toString();
     }
 
 
-    // =========================================================
-    // HOME
-    // =========================================================
+    // =====================================================
+    // ENQUEUE
+    // =====================================================
 
-    private static void handleHome(HttpExchange exchange)
+    private void handleEnqueue(
+            HttpExchange exchange)
             throws IOException {
 
-        String response =
-                "STC89C52 Educational Microcontroller Simulator\n\n"
-                + "Java CPU Backend is running.\n\n"
-                + "API:\n"
-                + "GET  /api/state\n"
-                + "POST /api/load\n"
-                + "POST /api/reset\n"
-                + "POST /api/step\n"
-                + "POST /api/run\n";
+        if (handleOptions(exchange)) {
+            return;
+        }
 
-        sendResponse(
-                exchange,
-                200,
-                response
-        );
+
+        if (!exchange.getRequestMethod()
+                .equalsIgnoreCase("POST")) {
+
+            sendResponse(
+                    exchange,
+                    405,
+                    "Method Not Allowed"
+            );
+
+            return;
+        }
+
+
+        String query =
+                exchange.getRequestURI().getQuery();
+
+
+        if (query == null ||
+                !query.startsWith("value=")) {
+
+            sendResponse(
+                    exchange,
+                    400,
+                    "Missing value"
+            );
+
+            return;
+        }
+
+
+        String value =
+                query.substring(6);
+
+
+        try {
+
+            String response =
+                    sendCommand(
+                            "ENQUEUE|" + value
+                    );
+
+
+            sendResponse(
+                    exchange,
+                    200,
+                    response
+            );
+
+        } catch (InterruptedException e) {
+
+            Thread.currentThread().interrupt();
+
+            sendResponse(
+                    exchange,
+                    500,
+                    "Core response interrupted"
+            );
+        }
     }
 
 
-    // =========================================================
-    // SEND JSON
-    // =========================================================
+    // =====================================================
+    // DEQUEUE
+    // =====================================================
 
-    private static void sendJSON(
-            HttpExchange exchange,
-            String response
-    ) throws IOException {
-        addCorsHeaders(exchange);
+    private void handleDequeue(
+            HttpExchange exchange)
+            throws IOException {
 
-        byte[] data =
-                response.getBytes(StandardCharsets.UTF_8);
+        if (handleOptions(exchange)) {
+            return;
+        }
 
-        exchange.getResponseHeaders()
-                .set(
-                        "Content-Type",
-                        "application/json"
-                );
 
-        exchange.getResponseHeaders()
-                .set(
-                        "Access-Control-Allow-Origin",
-                        "*"
-                );
+        if (!exchange.getRequestMethod()
+                .equalsIgnoreCase("POST")) {
 
-        exchange.sendResponseHeaders(
-                200,
-                data.length
+            sendResponse(
+                    exchange,
+                    405,
+                    "Method Not Allowed"
+            );
+
+            return;
+        }
+
+
+        try {
+
+            String response =
+                    sendCommand("DEQUEUE");
+
+
+            sendResponse(
+                    exchange,
+                    200,
+                    response
+            );
+
+        } catch (InterruptedException e) {
+
+            Thread.currentThread().interrupt();
+
+            sendResponse(
+                    exchange,
+                    500,
+                    "Core response interrupted"
+            );
+        }
+    }
+
+
+    // =====================================================
+    // PUSH
+    // =====================================================
+
+    private void handlePush(
+            HttpExchange exchange)
+            throws IOException {
+
+        if (handleOptions(exchange)) {
+            return;
+        }
+
+
+        if (!exchange.getRequestMethod()
+                .equalsIgnoreCase("POST")) {
+
+            sendResponse(
+                    exchange,
+                    405,
+                    "Method Not Allowed"
+            );
+
+            return;
+        }
+
+
+        String query =
+                exchange.getRequestURI().getQuery();
+
+
+        if (query == null ||
+                !query.startsWith("value=")) {
+
+            sendResponse(
+                    exchange,
+                    400,
+                    "Missing value"
+            );
+
+            return;
+        }
+
+
+        String value =
+                query.substring(6);
+
+
+        try {
+
+            String response =
+                    sendCommand(
+                            "PUSH|" + value
+                    );
+
+
+            sendResponse(
+                    exchange,
+                    200,
+                    response
+            );
+
+        } catch (InterruptedException e) {
+
+            Thread.currentThread().interrupt();
+
+            sendResponse(
+                    exchange,
+                    500,
+                    "Core response interrupted"
+            );
+        }
+    }
+
+
+    // =====================================================
+    // POP
+    // =====================================================
+
+    private void handlePop(
+            HttpExchange exchange)
+            throws IOException {
+
+        if (handleOptions(exchange)) {
+            return;
+        }
+
+
+        if (!exchange.getRequestMethod()
+                .equalsIgnoreCase("POST")) {
+
+            sendResponse(
+                    exchange,
+                    405,
+                    "Method Not Allowed"
+            );
+
+            return;
+        }
+
+
+        try {
+
+            String response =
+                    sendCommand("POP");
+
+
+            sendResponse(
+                    exchange,
+                    200,
+                    response
+            );
+
+        } catch (InterruptedException e) {
+
+            Thread.currentThread().interrupt();
+
+            sendResponse(
+                    exchange,
+                    500,
+                    "Core response interrupted"
+            );
+        }
+    }
+
+
+    // =====================================================
+    // HOME PAGE
+    // =====================================================
+
+   private void handleHome(HttpExchange exchange)
+        throws IOException {
+
+    if (!exchange.getRequestMethod()
+            .equalsIgnoreCase("GET")) {
+
+        sendResponse(exchange, 405, "Method Not Allowed");
+        return;
+    }
+
+    String htmlPath = "ui-process/index.html";
+
+    java.nio.file.Path path =
+            java.nio.file.Paths.get(htmlPath)
+                    .toAbsolutePath()
+                    .normalize();
+
+    if (!java.nio.file.Files.exists(path)) {
+        sendResponse(
+                exchange,
+                404,
+                "index.html not found: " + path
         );
+        return;
+    }
 
-        OutputStream output =
-                exchange.getResponseBody();
+    byte[] data = java.nio.file.Files.readAllBytes(path);
+
+    exchange.getResponseHeaders().set(
+            "Content-Type",
+            "text/html; charset=UTF-8"
+    );
+
+    exchange.sendResponseHeaders(200, data.length);
+
+    try (OutputStream output = exchange.getResponseBody()) {
+        output.write(data);
+    }
+}
+// SEND JSON RESPONSE
+private void sendJSON(
+        HttpExchange exchange,
+        String response)
+        throws IOException {
+
+    addCorsHeaders(exchange);
+
+    byte[] data = response.getBytes(
+            StandardCharsets.UTF_8
+    );
+
+    exchange.getResponseHeaders().set(
+            "Content-Type",
+            "application/json; charset=UTF-8"
+    );
+
+    exchange.sendResponseHeaders(
+            200,
+            data.length
+    );
+
+    try (OutputStream output =
+                 exchange.getResponseBody()) {
 
         output.write(data);
-
-        output.close();
     }
+}
 
-
-    // =========================================================
+    // =====================================================
     // SEND NORMAL RESPONSE
-    // =========================================================
+    // =====================================================
 
-    private static void sendResponse(
+    private void sendResponse(
             HttpExchange exchange,
             int statusCode,
-            String response
-    ) throws IOException {
+            String response)
+            throws IOException {
+
         addCorsHeaders(exchange);
 
+
         byte[] data =
-                response.getBytes(StandardCharsets.UTF_8);
-
-        exchange.getResponseHeaders()
-                .set(
-                        "Content-Type",
-                        "text/plain"
+                response.getBytes(
+                        StandardCharsets.UTF_8
                 );
 
-        exchange.getResponseHeaders()
-                .set(
-                        "Access-Control-Allow-Origin",
-                        "*"
-                );
+
+        exchange.getResponseHeaders().set(
+                "Content-Type",
+                "text/plain"
+        );
+
 
         exchange.sendResponseHeaders(
                 statusCode,
                 data.length
         );
 
+
         OutputStream output =
                 exchange.getResponseBody();
+
 
         output.write(data);
 
