@@ -3,7 +3,11 @@ package simulator;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
-
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.util.concurrent.LinkedBlockingQueue;
 public class Logger implements Runnable {
 
     private final BlockingQueue<String> logQueue;
@@ -54,4 +58,35 @@ public class Logger implements Runnable {
             );
         }
     }
+    
+public static void startSocketServer() throws Exception {
+
+    BlockingQueue<String> logs = new LinkedBlockingQueue<>();
+
+    Logger logger = new Logger(logs);
+
+    Thread loggerWorker = new Thread(logger, "Logger-Worker");
+    loggerWorker.start();
+
+    try (ServerSocket server = new ServerSocket(5002)) {
+
+        System.out.println("LOGGER PROCESS STARTED");
+        System.out.println("Listening on port 5002");
+
+        while (true) {
+
+            try (Socket socket = server.accept();
+                 BufferedReader input = new BufferedReader(
+                     new InputStreamReader(socket.getInputStream()))) {
+
+                String message;
+
+                while ((message = input.readLine()) != null) {
+                    logs.put(message);
+                }
+            }
+        }
+    }
+}
+
 }
