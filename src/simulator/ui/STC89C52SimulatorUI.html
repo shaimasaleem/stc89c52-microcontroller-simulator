@@ -546,6 +546,423 @@ body{
 <section class="program-editor panel-card">
     <div class="panel-title">PROGRAM INPUT</div>
 
+   <textarea id="programInput" class="program-input">MOV A,#10
+MOV B,#20
+
+MOV R0,#1
+MOV R1,#2
+MOV R2,#3
+MOV R3,#4
+MOV R4,#5
+MOV R5,#6
+MOV R6,#7
+MOV R7,#8
+
+ADD A,B
+ADD R0,#10
+ADD R1,R0
+
+SUB B,#5
+SUB R2,#1
+
+ANL R3,#3
+ANL A,#15
+
+INC A
+INC B
+INC R0
+INC R1
+INC R2
+INC R3
+INC R4
+INC R5
+INC R6
+INC R7
+
+HALT</textarea>
+    <div class="input-help">
+        Enter one instruction per line. Example: MOV A,#10
+    </div>
+</section>
+
+<main class="main-grid">
+
+    <div class="left-stack">
+        <div class="panel-card">
+            <div class="panel-title">PROGRAM / INSTRUCTIONS</div>
+
+            <div class="program-table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>PTR</th>
+                            <th>ADDRESS</th>
+                            <th>INSTRUCTION</th>
+                            <th>CATEGORY</th>
+                        </tr>
+                    </thead>
+                    <tbody id="programTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="current-instr-card">
+            <div class="panel-title">CURRENT INSTRUCTION</div>
+            <div class="instr-text" id="curMnemonic">-</div>
+            <div class="addr-text" id="curAddr">Address : ----</div>
+        </div>
+    </div>
+
+    <div class="panel-card">
+        <div class="panel-title">REGISTERS</div>
+
+        <div class="registers-list">
+            <div class="reg-row"><span class="reg-name">PC</span><span class="reg-val" id="regPC">00H</span></div>
+            <div class="reg-row"><span class="reg-name">SP</span><span class="reg-val" id="regSP">07H</span></div>
+            <div class="reg-row"><span class="reg-name">A</span><span class="reg-val" id="regA">00H</span></div>
+            <div class="reg-row"><span class="reg-name">B</span><span class="reg-val" id="regB">00H</span></div>
+            <div class="reg-row"><span class="reg-name">R0</span><span class="reg-val" id="regR0">00H</span></div>
+            <div class="reg-row"><span class="reg-name">R1</span><span class="reg-val" id="regR1">00H</span></div>
+            <div class="reg-row"><span class="reg-name">R2</span><span class="reg-val" id="regR2">00H</span></div>
+            <div class="reg-row"><span class="reg-name">R3</span><span class="reg-val" id="regR3">00H</span></div>
+            <div class="reg-row"><span class="reg-name">R4</span><span class="reg-val" id="regR4">00H</span></div>
+            <div class="reg-row"><span class="reg-name">R5</span><span class="reg-val" id="regR5">00H</span></div>
+            <div class="reg-row"><span class="reg-name">R6</span><span class="reg-val" id="regR6">00H</span></div>
+            <div class="reg-row"><span class="reg-name">R7</span><span class="reg-val" id="regR7">00H</span></div>
+        </div>
+    </div>
+
+    <div class="panel-card">
+        <div class="panel-title">MEMORY (DATA MEMORY)</div>
+
+        <div class="memory-container">
+            <table class="data-table">
+                <thead>
+                    <tr><th>ADDRESS</th><th>VALUE</th></tr>
+                </thead>
+                <tbody id="memoryTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="panel-card">
+        <div class="panel-title">STACK</div>
+
+        <div class="week3-info">
+            <span>SP : <b class="week3-value" id="stackSP">07H</b></span>
+        </div>
+
+        <div class="stack-container">
+            <table class="stack-table">
+                <thead>
+                    <tr><th>TOP</th><th>VALUE</th></tr>
+                </thead>
+                <tbody id="stackTableBody"></tbody>
+            </table>
+        </div>
+
+        <div class="week3-message" id="stackStatus">
+            Stack ready.
+        </div>
+    </div>
+
+    <div class="panel-card">
+        <div class="panel-title">FIFO QUEUE</div>
+
+        <div class="queue-label">
+            <span>Front →</span>
+            <span>← Rear</span>
+        </div>
+
+        <div class="queue-display" id="queueDisplay"></div>
+
+        <div class="week3-info">
+            <span>SIZE : <b class="week3-value" id="queueCount">0/5</b></span>
+        </div>
+
+        <div class="week3-info">
+            <span>STATUS :</span>
+            <b class="week3-value" id="queueStatus">EMPTY</b>
+        </div>
+
+        <div class="week3-message" id="queueOperationStatus">
+            Queue ready.
+        </div>
+    </div>
+
+</main>
+
+<div class="trace-layout">
+
+    <div class="trace-card">
+        <div class="panel-title">EXECUTION TRACE</div>
+
+        <div class="trace-stages">
+
+    <div class="stage-row">
+        <span class="stage-name">FETCH</span>
+        <span class="stage-check" id="fetchDetail">o</span>
+    </div>
+
+    <div class="stage-row">
+        <span class="stage-name">DECODE</span>
+        <span class="stage-check" id="decodeDetail">o</span>
+    </div>
+
+    <div class="stage-row">
+        <span class="stage-name">EXECUTE</span>
+        <span class="stage-check" id="executeDetail">o</span>
+    </div>
+
+</div>
+    </div>
+
+    <div class="trace-card">
+        <div class="panel-title">RESULT (CHANGES)</div>
+
+        <div id="diffContainer">
+            <div class="message">No instruction executed yet.</div>
+        </div>
+    </div>
+
+    <div class="trace-card">
+        <div class="panel-title">FLAGS / STATUS</div>
+
+        <table class="flags-table">
+            <thead>
+                <tr><th>CY</th><th>AC</th><th>OV</th><th>P</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td id="flagCY">0</td>
+                    <td id="flagAC">0</td>
+                    <td id="flagOV">0</td>
+                    <td id="flagP">0</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<!-- ERROR PANEL MOVED TO THE VERY BOTTOM -->
+
+<section class="panel-card error-panel" aria-label="Program errors">
+    <div class="error-heading">
+        <div class="panel-title">ERROR PANEL</div>
+        <span class="error-count" id="errorCount">0 errors</span>
+    </div>
+
+    <div class="error-results" id="errorResults">
+        <div class="error-empty">
+            No execution errors yet. Click STEP or RUN to check.
+        </div>
+    </div>
+
+    <div class="error-actions">
+        <button type="button" class="error-clear" id="clearErrors">
+            CLEAR ERRORS
+        </button>
+    </div>
+</section>
+
+</div>
+
+<script>
+
+const API_BASE="http://localhost:8080";
+
+let program=[];
+let previousState=null;
+let running=false;
+let stopRequested=false;
+
+/* PROGRAM HISTORY — ALL FOUR PROGRAMS */
+
+const programHistory=[
+
+`MOV A,#10
+MOV B,#20
+
+MOV R0,#1
+MOV R1,#2
+MOV R2,#3
+MOV R3,#4
+MOV R4,#5
+MOV R5,#6
+MOV R6,#7
+MOV R7,#8
+
+ADD A,B
+ADD R0,#10
+ADD R1,R0
+
+SUB B,#5
+SUB R2,#1
+
+ANL R3,#3
+ANL A,#15
+
+INC A
+INC B
+INC R0
+INC R1
+INC R2
+INC R3
+INC R4
+INC R5
+INC R6
+INC R7
+
+HALT`,
+
+`PUSH #15
+PUSH #28
+PUSH #42
+PUSH #57
+PUSH #73
+PUSH #86
+
+POP A
+POP A
+POP A
+POP A
+POP A
+POP A
+
+HALT`,
+
+`ENQUEUE #10
+ENQUEUE #20
+ENQUEUE #30
+ENQUEUE #40
+ENQUEUE #50
+DEQUEUE
+DEQUEUE
+DEQUEUE
+HALT`,
+
+`MOV A,#10
+ADD A,#5
+MULT A,#2
+SUB A
+HELLO
+HALT`
+
+];
+
+let historyIndex=0;
+
+function getCategory(op){
+    op=op.toUpperCase();
+
+    if(op==="MOV"||op==="MOVC")return "Data Transfer";
+    if(op==="ADD"||op==="SUB")return "Arithmetic";
+    if(op==="ANL")return "Logical";
+    if(op==="INC")return "Increment";
+    if(op==="SJMP")return "Control Flow";
+    if(op==="PUSH"||op==="POP")return "Stack";
+    if(op==="ENQUEUE"||op==="DEQUEUE")return "FIFO Queue";
+    if(op==="HALT")return "Termination";
+
+    return "Other";
+}
+
+function formatHex(v){
+    return Number(v).toString(16).toUpperCase().padStart(2,"0")+"H";
+}
+
+function readProgram(){
+    program=document.getElementById("programInput").value
+        .split("\n")
+        .map(x=>x.trim())
+        .filter(x=>x);
+
+    renderProgram();
+}
+
+
+function glowCPU() {
+    const panel = document.querySelector(".current-instr-card");
+
+    if (!panel) return;
+
+    panel.classList.remove("cpu-glow");
+
+    // Restart animation on every STEP
+    void panel.offsetWidth;
+
+    panel.classList.add("cpu-glow");
+}
+
+
+/* HISTORY — NO ERROR CHECK WHILE SWITCHING */
+
+document.getElementById("programInput").addEventListener("keydown",function(e){
+
+    if(e.key==="ArrowUp"){
+        e.preventDefault();
+
+        if(historyIndex<programHistory.length-1){
+            historyIndex++;
+            this.value=programHistory[historyIndex];
+        }
+    }
+
+    if(e.key==="ArrowDown"){
+        e.preventDefault();
+
+        if(historyIndex>0){
+            historyIndex--;
+            this.value=programHistory[historyIndex];
+        }
+    }
+});
+
+function renderProgram(){
+    const table=document.getElementById("programTableBody");
+    table.innerHTML="";
+
+    program.forEach((instruction,i)=>{
+        const row=document.createElement("tr");
+        row.id="programRow"+i;
+        row.onclick=()=>selectInstruction(i);
+
+        row.innerHTML=`
+            <td class="pointer-cell"></td>
+            <td class="addr-cell">${formatHex(i)}</td>
+            <td>${instruction}</td>
+            <td class="category-cell">${getCategory(instruction.split(/\s+/)[0])}</td>
+        `;
+
+        table.appendChild(row);
+    });
+}
+
+function selectInstruction(i){
+    document.querySelectorAll("#programTableBody tr").forEach(r=>{
+        r.classList.remove("active-row");
+        r.querySelector(".pointer-cell").textContent="";
+    });
+
+    const row=document.getElementById("programRow"+i);
+
+    if(row){
+        row.classList.add("active-
+                          ="btnStep">▶ STEP</button>
+        <button type="button" class="btn" id="btnRun">⏩ RUN</button>
+        <button type="button" class="btn" id="btnStop">⏹ STOP</button>
+    </div>
+
+    <div class="status-badge">
+        <span class="status-label">STATUS : </span>
+        <span class="status-value" id="statusDisplay">READY</span>
+    </div>
+</section>
+
+<section class="program-editor panel-card">
+    <div class="panel-title">PROGRAM INPUT</div>
+
     <textarea id="programInput" class="program-input">MOV A,#10
 MOVC A,10
 ADD A,#5
