@@ -51,51 +51,61 @@ public class CPU {
             break;
         }
 
-        if (operands[0].equals("A")) {
-            accumulator = Integer.parseInt(operands[1].substring(1));
+        String destination = operands[0].trim().toUpperCase();
+        String source = operands[1].trim().toUpperCase();
+
+        int value;
+
+        // Find source value
+        if (source.startsWith("#")) {
+            value = Integer.parseInt(source.substring(1));
+        }
+        else if (source.equals("A")) {
+            value = accumulator;
+        }
+        else if (source.equals("B")) {
+            value = bRegister;
+        }
+        else if (source.matches("R[0-7]")) {
+            int sourceRegister =
+                    Integer.parseInt(source.substring(1));
+
+            value = registers[sourceRegister];
+        }
+        else {
+            System.out.println(
+                    "ERROR: Invalid MOV source " + source);
+            break;
         }
 
-        else if (operands[0].equals("B")) {
-            bRegister = Integer.parseInt(operands[1].substring(1));
-        }
+        value = value & 0xFF;
 
-        else if (operands[0].startsWith("R")) {
+        // Store value in destination
+        if (destination.equals("A")) {
+            accumulator = value;
+        }
+        else if (destination.equals("B")) {
+            bRegister = value;
+        }
+        else if (destination.matches("R[0-7]")) {
+
             int registerNumber =
-                    Integer.parseInt(operands[0].substring(1));
+                    Integer.parseInt(destination.substring(1));
 
-            if (registerNumber < 0 || registerNumber > 7) {
-                System.out.println("ERROR: Invalid register "
-                        + operands[0]);
-                break;
-            }
-
-            registers[registerNumber] =
-                    Integer.parseInt(operands[1].substring(1));
+            registers[registerNumber] = value;
         }
-
-        else if (operands[0].endsWith("H")) {
+        else if (destination.endsWith("H")) {
 
             int address = Integer.parseInt(
-                    operands[0].substring(
-                            0, operands[0].length() - 1), 16);
-
-            if (address < 0 || address > 0xFF) {
-                System.out.println(
-                        "ERROR: Invalid memory address "
-                        + operands[0]);
-                break;
-            }
-
-            int value =
-                    Integer.parseInt(operands[1].substring(1));
+                    destination.substring(
+                            0, destination.length() - 1), 16);
 
             dataMemory.write(address, value);
         }
-
         else {
             System.out.println(
                     "ERROR: Invalid MOV destination "
-                    + operands[0]);
+                    + destination);
         }
 
     } catch (NumberFormatException e) {
@@ -109,39 +119,74 @@ public class CPU {
         accumulator = codeMemory[address];
     }
     break;
-       case "ADD":
-    if (operands[0].equals("A")) {
+      case "ADD":
+    try {
+        String destination = operands[0].trim().toUpperCase();
+        String source = operands[1].trim().toUpperCase();
 
-        int value = Integer.parseInt(operands[1].substring(1));
-        int result = accumulator + value;
+        int destValue = getRegisterValue(destination);
+        int sourceValue = getOperandValue(source);
+
+        int result = destValue + sourceValue;
 
         CY = result > 255;
-        OV = (accumulator < 128 && value < 128 && result >= 128)
-                || (accumulator >= 128 && value >= 128 && result < 256);
+        OV = ((destValue ^ result) & (sourceValue ^ result) & 0x80) != 0;
 
-        accumulator = result & 0xFF;
+        setRegisterValue(destination, result & 0xFF);
+
+    } catch (Exception e) {
+        System.out.println("ERROR: Invalid ADD instruction.");
     }
     break;
         case "SUB":
-    if (operands[0].equals("A")) {
+    try {
+        String destination = operands[0].trim().toUpperCase();
+        String source = operands[1].trim().toUpperCase();
 
-        int value = Integer.parseInt(operands[1].substring(1));
-        int result = accumulator - value;
+        int destValue = getRegisterValue(destination);
+        int sourceValue = getOperandValue(source);
+
+        int result = destValue - sourceValue;
 
         CY = result < 0;
 
-        accumulator = result & 0xFF;
+        setRegisterValue(destination, result & 0xFF);
+
+    } catch (Exception e) {
+        System.out.println("ERROR: Invalid SUB instruction.");
     }
     break;
 
         case "ANL":
-            if(operands[0].equals("A")) {
-                accumulator &= Integer.parseInt(operands[1].substring(1));
-            }
+    try {
+        String destination = operands[0].trim().toUpperCase();
+        String source = operands[1].trim().toUpperCase();
+
+        int destValue = getRegisterValue(destination);
+        int sourceValue = getOperandValue(source);
+
+        setRegisterValue(
+            destination,
+            (destValue & sourceValue) & 0xFF
+        );
+
+    } catch (Exception e) {
+        System.out.println("ERROR: Invalid ANL instruction.");
+    }
     break;
         case "INC":
-            if (operands[0].equals("A")) {
-                 accumulator++;
+    try {
+        String destination = operands[0].trim().toUpperCase();
+
+        int value = getRegisterValue(destination);
+
+        setRegisterValue(
+            destination,
+            (value + 1) & 0xFF
+        );
+
+    } catch (Exception e) {
+        System.out.println("ERROR: Invalid INC instruction.");
     }
     break;
         case "SJMP":
@@ -171,6 +216,66 @@ public class CPU {
         default:
             System.out.println("Invalid instruction " + operation);
             break;
+    }
+}
+
+    private int getRegisterValue(String register) {
+
+    register = register.trim().toUpperCase();
+
+    if (register.equals("A")) {
+        return accumulator;
+    }
+
+    if (register.equals("B")) {
+        return bRegister;
+    }
+
+    if (register.matches("R[0-7]")) {
+        int registerNumber =
+                Integer.parseInt(register.substring(1));
+
+        return registers[registerNumber];
+    }
+
+    throw new IllegalArgumentException(
+            "Invalid register: " + register);
+}
+
+
+private int getOperandValue(String operand) {
+
+    operand = operand.trim().toUpperCase();
+
+    if (operand.startsWith("#")) {
+        return Integer.parseInt(operand.substring(1));
+    }
+
+    return getRegisterValue(operand);
+}
+
+
+private void setRegisterValue(String register, int value) {
+
+    register = register.trim().toUpperCase();
+    value = value & 0xFF;
+
+    if (register.equals("A")) {
+        accumulator = value;
+    }
+    else if (register.equals("B")) {
+        bRegister = value;
+    }
+    else if (register.matches("R[0-7]")) {
+
+        int registerNumber =
+                Integer.parseInt(register.substring(1));
+
+        registers[registerNumber] = value;
+    }
+    else {
+        throw new IllegalArgumentException(
+                "Invalid register: " + register);
     }
 }
 

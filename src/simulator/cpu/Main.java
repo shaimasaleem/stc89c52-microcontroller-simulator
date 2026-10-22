@@ -1,59 +1,81 @@
-
 package simulator;
 
-import simulator.integration.BlockingQueueIPC;
+import java.io.File;
+import java.io.IOException;
 
 public class Main {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
 
-        System.out.println("STC89C52 Week 4 Simulator Started");
+        // Start the requested process
+        if (args.length > 0) {
 
-        BlockingQueueIPC ipc = new BlockingQueueIPC();
+            switch (args[0].toLowerCase()) {
 
-        // Create Core
-        Core core = new Core(
-                ipc.getCommandQueue(),
-                ipc.getResponseQueue(),
-                ipc.getLogQueue()
-        );
+                case "logger":
+                    Logger.startSocketServer();
+                    break;
 
-        // Create Logger
-        Logger logger = new Logger(
-                ipc.getLogQueue()
-        );
+                case "core":
+                    Core.startSocketServer();
+                    break;
 
-        // Create UI Server
-        SimulatorServer server = new SimulatorServer(
-                ipc.getCommandQueue(),
-                ipc.getResponseQueue()
-        );
+                case "ui":
+                    SimulatorServer.startSocketServer();
+                    break;
 
-        // Start Core
-        Thread coreThread = new Thread(core, "Core-Thread");
-        coreThread.start();
+                default:
+                    System.out.println("Unknown process: " + args[0]);
+            }
 
-        // Start Logger
-        Thread loggerThread = new Thread(logger, "Logger-Thread");
-        loggerThread.start();
+            return;
+        }
 
-        // Start UI Server
-       // Start UI Server
-try {
-    server.startServer();
+        System.out.println("================================");
+        System.out.println(" STC89C52 MICROCONTROLLER");
+        System.out.println(" MULTIPROCESS SIMULATOR");
+        System.out.println("================================");
 
-    // Automatically open simulator in browser
-    new ProcessBuilder(
-        "powershell.exe",
-        "-NoProfile",
-        "-Command",
-        "Start-Process 'http://localhost:8080'"
-    ).start();
+        // Start Logger process
+        launch("logger");
+        Thread.sleep(500);
 
-    System.out.println("Opening simulator in browser...");
+        // Start Core process
+        launch("core");
+        Thread.sleep(500);
 
-    } catch (Exception e) {
-        e.printStackTrace();
+        // Start UI process
+        launch("ui");
+
+        System.out.println("Three independent processes launched.");
+        System.out.println("Open http://localhost:8080");
     }
+
+    private static void launch(String role) throws IOException {
+
+        String javaPath =
+                System.getProperty("java.home")
+                + File.separator
+                + "bin"
+                + File.separator
+                + "java";
+
+        String classPath =
+                System.getProperty("java.class.path");
+
+        ProcessBuilder builder = new ProcessBuilder(
+                javaPath,
+                "-cp",
+                classPath,
+                "simulator.Main",
+                role
+        );
+
+        builder.inheritIO();
+
+        builder.start();
+
+        System.out.println(role.toUpperCase()
+                + " process launched.");
     }
 }
