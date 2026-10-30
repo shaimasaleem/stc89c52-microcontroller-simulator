@@ -1072,4 +1072,1152 @@ HALT</textarea>
 
     <div class="error-results" id="errorResults">
         <div class="error-empty">
-            No execution errors yet. 
+            No execution errors yet. Click STEP or RUN to check.
+        </div>
+    </div>
+
+    <div class="error-actions">
+        <button type="button" class="error-clear" id="clearErrors">
+            CLEAR ERRORS
+        </button>
+    </div>
+</section>
+
+</div>
+
+<script>
+
+const API_BASE="http://localhost:8080";
+
+let program=[];
+let previousState=null;
+let running=false;
+let stopRequested=false;
+
+/* PROGRAM HISTORY — ALL FOUR PROGRAMS */
+
+const programHistory=[
+
+`MOV A,#10
+MOV B,#20
+
+MOV R0,#1
+MOV R1,#2
+MOV R2,#3
+MOV R3,#4
+MOV R4,#5
+MOV R5,#6
+MOV R6,#7
+MOV R7,#8
+
+ADD A,B
+ADD R0,#10
+ADD R1,R0
+
+SUB B,#5
+SUB R2,#1
+
+ANL R3,#3
+ANL A,#15
+
+INC A
+INC B
+INC R0
+INC R1
+INC R2
+INC R3
+INC R4
+INC R5
+INC R6
+INC R7
+
+HALT`,
+
+`PUSH #15
+PUSH #28
+PUSH #42
+PUSH #57
+PUSH #73
+PUSH #86
+
+POP A
+POP A
+POP A
+POP A
+POP A
+POP A
+
+HALT`,
+
+`ENQUEUE #10
+ENQUEUE #20
+ENQUEUE #30
+ENQUEUE #40
+ENQUEUE #50
+DEQUEUE
+DEQUEUE
+DEQUEUE
+HALT`,
+
+`MOV A,#10
+ADD A,#5
+MULT A,#2
+SUB A
+HELLO
+HALT`
+
+];
+
+let historyIndex=0;
+
+function getCategory(op){
+    op=op.toUpperCase();
+
+    if(op==="MOV"||op==="MOVC")return "Data Transfer";
+    if(op==="ADD"||op==="SUB")return "Arithmetic";
+    if(op==="ANL")return "Logical";
+    if(op==="INC")return "Increment";
+    if(op==="SJMP")return "Control Flow";
+    if(op==="PUSH"||op==="POP")return "Stack";
+    if(op==="ENQUEUE"||op==="DEQUEUE")return "FIFO Queue";
+    if(op==="HALT")return "Termination";
+
+    return "Other";
+}
+
+function formatHex(v){
+    return Number(v).toString(16).toUpperCase().padStart(2,"0")+"H";
+}
+
+function readProgram(){
+    program=document.getElementById("programInput").value
+        .split("\n")
+        .map(x=>x.trim())
+        .filter(x=>x);
+
+    renderProgram();
+}
+
+
+function glowCPU() {
+    const panel = document.querySelector(".current-instr-card");
+
+    if (!panel) return;
+
+    panel.classList.remove("cpu-glow");
+
+    // Restart animation on every STEP
+    void panel.offsetWidth;
+
+    panel.classList.add("cpu-glow");
+}
+
+
+/* HISTORY — NO ERROR CHECK WHILE SWITCHING */
+
+document.getElementById("programInput").addEventListener("keydown",function(e){
+
+    if(e.key==="ArrowUp"){
+        e.preventDefault();
+
+        if(historyIndex<programHistory.length-1){
+            historyIndex++;
+            this.value=programHistory[historyIndex];
+        }
+    }
+
+    if(e.key==="ArrowDown"){
+        e.preventDefault();
+
+        if(historyIndex>0){
+            historyIndex--;
+            this.value=programHistory[historyIndex];
+        }
+    }
+});
+
+function renderProgram(){
+    const table=document.getElementById("programTableBody");
+    table.innerHTML="";
+
+    program.forEach((instruction,i)=>{
+        const row=document.createElement("tr");
+        row.id="programRow"+i;
+        row.onclick=()=>selectInstruction(i);
+
+        row.innerHTML=`
+            <td class="pointer-cell"></td>
+            <td class="addr-cell">${formatHex(i)}</td>
+            <td>${instruction}</td>
+            <td class="category-cell">${getCategory(instruction.split(/\s+/)[0])}</td>
+        `;
+
+        table.appendChild(row);
+    });
+}
+
+function selectInstruction(i){
+    document.querySelectorAll("#programTableBody tr").forEach(r=>{
+        r.classList.remove("active-row");
+        r.querySelector(".pointer-cell").textContent="";
+    });
+
+    const row=document.getElementById("programRow"+i);
+
+    if(row){
+        row.classList.add("active-row");
+        row.querySelector(".pointer-cell").textContent="▶";
+    }
+
+    if(program[i]){
+        document.getElementById("curMnemonic").textContent=program[i];
+        document.getElementById("curAddr").textContent="Address : "+formatHex(i);
+    }
+}
+
+/* API */
+
+async function readApiState(response){
+    const data=await response.json();
+
+    if(!response.ok || data.ok===false){
+        throw new Error(data.error || "Request failed");
+    }
+
+    return data.state ?? data;
+}
+function updateExecutionTime(data) {
+
+    if (data.elapsedNanos !== undefined) {
+
+        const milliseconds = data.elapsedNanos / 1000000;
+
+        document.getElementById("executionTime").textContent =
+            milliseconds.toFixed(3) + " ms";
+    }
+}
+
+async function getState(){
+    const response=await fetch(API_BASE+"/api/state");
+    return await readApiState(response);
+}
+
+/* CPU DISPLAY */
+
+function updateFlagColor(id,a){
+    document.getElementById(id)
+        .classList.toggle("flag-active",!!a);
+}
+
+function updateCPUDisplay(s){
+    document.getElementById("regPC").textContent=formatHex(s.programCounter);
+    document.getElementById("regSP").textContent=formatHex(s.stackPointer);
+    document.getElementById("regA").textContent=formatHex(s.accumulator);
+    document.getElementById("regB").textContent=formatHex(s.bRegister);
+
+    for(let i=0;i<8;i++){
+        document.getElementById("regR"+i).textContent=formatHex(s.registers[i]);
+    }
+
+    ["CY","AC","OV","P"].forEach(f=>{
+        document.getElementById("flag"+f).textContent=s[f]?"1":"0";
+        updateFlagColor("flag"+f,s[f]);
+    });
+
+    if(program.length && s.programCounter<program.length){
+        selectInstruction(s.programCounter);
+    }
+
+    
+if(s.memory){
+    const t=document.getElementById("memoryTableBody");
+    t.innerHTML="";
+
+    s.memory.forEach((v,i)=>{
+        t.innerHTML+=`
+            <tr>
+                <td>${i.toString(16).toUpperCase().padStart(2,"0")}H</td>
+                <td>${formatHex(v)}</td>
+            </tr>`;
+    });
+
+    // Restore green highlights after updating memory
+    applyMemoryHighlights();
+}
+
+}
+
+/* PROGRAM ERROR VALIDATION */
+
+const supportedOpcodes=new Set([
+    "MOV","MOVC","ADD","SUB","ANL","INC",
+    "SJMP","HALT","PUSH","POP","ENQUEUE","DEQUEUE"
+]);
+
+let currentProgramErrors=[];
+
+function validateProgramLines(){
+
+    const lines=document.getElementById("programInput").value.split(/\r?\n/);
+    const errors=[];
+
+    const activeLines=lines
+        .map((text,index)=>({
+            text:text.trim(),
+            number:index+1
+        }))
+        .filter(item=>item.text.length>0);
+
+    activeLines.forEach(({text,number})=>{
+
+        const parts=text.match(/^([A-Za-z]+)(?:\s+(.*))?$/);
+
+        if(!parts){
+            errors.push({
+                number,
+                text,
+                message:"Invalid instruction format."
+            });
+            return;
+        }
+
+        const op=parts[1].toUpperCase();
+        const args=(parts[2]||"").trim();
+
+        if(!supportedOpcodes.has(op)){
+            errors.push({
+                number,
+                text,
+                message:`Unsupported instruction: ${op}.`
+            });
+            return;
+        }
+
+        if(["HALT","DEQUEUE"].includes(op) && args){
+
+            errors.push({
+                number,
+                text,
+                message:`${op} does not take an operand.`
+                    });
+        }else if(op==="MOV"){
+
+            if(!/^(A|B|R[0-7])\s*,\s*#(?:\d+|0x[\da-f]+|[\da-f]+H)$/i.test(args)){
+                errors.push({
+                    number,
+                    text,
+                    message:"MOV requires a valid destination and immediate value, e.g. MOV R0,#10."
+                });
+            }
+
+        }else if(op==="MOVC"){
+
+    if(!/^A\s*,\s*\d+$/i.test(args)){
+        errors.push({
+            number,
+            text,
+            message:"MOVC requires A and a code-memory address, e.g. MOVC A,10."
+        });
+    }
+
+        }else if(["ADD","SUB","ANL"].includes(op)){
+
+    if(!/^(A|B|R[0-7])\s*,\s*(?:#(?:\d+|0x[\da-f]+|[\da-f]+H)|A|B|R[0-7])$/i.test(args)){
+        errors.push({
+            number,
+            text,
+            message:`${op} requires valid registers/values, e.g. ${op} R0,#10.`
+        });
+    }
+
+}else if(op==="INC" && !/^(A|B|R[0-7])$/i.test(args)){
+
+            errors.push({
+                number,
+                text,
+                message:"INC requires a register, e.g. INC A."
+            });
+
+        }else if(op==="SJMP"){
+
+            if(!/^\d+$/.test(args)){
+                errors.push({
+                    number,
+                    text,
+                    message:"SJMP requires a numeric target, e.g. SJMP 7."
+                });
+
+            }else if(Number(args)>=activeLines.length){
+                errors.push({
+                    number,
+                    text,
+                    message:`Jump target ${args} is outside the program.`
+                });
+            }
+
+        }else if(["PUSH","ENQUEUE"].includes(op) &&
+            !/^#?(?:\d+|0x[\da-f]+|[\da-f]+H|A|R[0-7])$/i.test(args)){
+
+            errors.push({
+                number,
+                text,
+                message:`${op} requires a value, e.g. ${op} #10.`
+            });
+
+        }else if(op==="POP" && !/^(A|R[0-7])$/i.test(args)){
+
+            errors.push({
+                number,
+                text,
+                message:"POP requires a destination register, e.g. POP A."
+            });
+        }
+    });
+
+    return errors;
+}
+
+/* DISPLAY ERRORS */
+
+function showProgramErrors(errors){
+
+    currentProgramErrors=errors;
+
+    const output=document.getElementById("errorResults");
+    const count=document.getElementById("errorCount");
+
+    count.textContent=errors.length+
+        (errors.length===1?" error":" errors");
+
+    count.style.color=errors.length?"#fda4af":"#86efac";
+
+    output.replaceChildren();
+
+    if(!errors.length){
+        const ok=document.createElement("div");
+        ok.className="error-empty";
+        ok.style.color="#86efac";
+        ok.textContent="No syntax errors detected.";
+        output.appendChild(ok);
+        return;
+    }
+
+    errors.forEach(error=>{
+
+        const item=document.createElement("div");
+        item.className="error-item";
+
+        const label=document.createElement("strong");
+        label.textContent=`Line ${error.number}: ${error.message}`;
+
+        const code=document.createElement("span");
+        code.className="error-code";
+        code.textContent=error.text;
+
+        item.append(label,code);
+        output.appendChild(item);
+    });
+}
+
+function checkProgramErrors(){
+    const errors=validateProgramLines();
+    showProgramErrors(errors);
+    return errors;
+}
+
+/* CLEAR ERRORS */
+
+document.getElementById("clearErrors").addEventListener("click",()=>{
+
+    currentProgramErrors=[];
+
+    document.getElementById("errorCount").textContent="0 errors";
+    document.getElementById("errorCount").style.color="#a0a0a0";
+
+    document.getElementById("errorResults").innerHTML=
+        '<div class="error-empty">No execution errors yet. Click STEP or RUN to check.</div>';
+});
+
+/* LOAD — NO ERROR CHECK */
+
+async function loadProgram(){
+
+    readProgram();
+
+    if(!program.length){
+        alert("Please enter a program.");
+        return;
+    }
+
+    setStatus("LOADING","#eab308");
+
+    try{
+        const r=await fetch(API_BASE+"/api/load",{
+            method:"POST",
+            headers:{
+                "Content-Type":"text/plain"
+            },
+            body:program.join(";")
+        });
+
+        const s=await readApiState(r);
+        // Clear previous green highlights
+        clearValueHighlights();
+
+
+        await updateQueue();
+        await updateStack();
+
+        previousState=s;
+        updateCPUDisplay(s);
+        selectInstruction(0);
+        clearTrace();
+
+        setStatus("LOADED","#22c55e");
+
+    }catch(e){
+        console.error(e);
+        setStatus("SERVER ERROR","#ef4444");
+
+        alert(
+            "Program could not be loaded.\n\n"+
+            "Check the Java server and program instructions."
+        );
+    }
+}
+
+/* RESET */
+
+async function resetCPU(){
+
+    try{
+        setStatus("RESETTING","#eab308");
+
+        const response=await fetch(API_BASE+"/api/reset",{
+            method:"POST"
+        });
+
+        const s=await readApiState(response);
+
+        // Clear previous green highlights
+        clearValueHighlights();
+
+        previousState=s;
+        updateCPUDisplay(s);
+
+        await updateStack();
+        await updateQueue();
+
+        clearTrace();
+        setStatus("RESET","#22c55e");
+
+    }catch(e){
+        console.error("Reset failed:",e);
+        setStatus("RESET ERROR","#ef4444");
+    }
+}
+
+/* HIGHLIGHT UPDATED REGISTERS AND MEMORY */
+
+const changedMemoryAddresses = new Set();
+
+function clearValueHighlights() {
+
+    // Forget previously changed memory addresses
+    changedMemoryAddresses.clear();
+
+    // Remove green color from registers and memory
+    document.querySelectorAll(".value-glow").forEach(element => {
+        element.classList.remove("value-glow");
+    });
+}
+
+
+function highlightChanges(before, after) {
+
+    if (!before || !after) return;
+
+    // PC, SP, A, B
+    const registerFields = [
+        ["programCounter", "regPC"],
+        ["stackPointer", "regSP"],
+        ["accumulator", "regA"],
+        ["bRegister", "regB"]
+    ];
+
+    registerFields.forEach(([field, id]) => {
+        if (before[field] !== after[field]) {
+            document.getElementById(id)
+                .classList.add("value-glow");
+        }
+    });
+
+    // R0 to R7
+    for (let i = 0; i < 8; i++) {
+        if (before.registers[i] !== after.registers[i]) {
+            document.getElementById("regR" + i)
+                .classList.add("value-glow");
+        }
+    }
+
+    // Memory
+    if (before.memory && after.memory) {
+
+        for (let i = 0; i < Math.min(
+            before.memory.length,
+            after.memory.length
+        ); i++) {
+
+            if (before.memory[i] !== after.memory[i]) {
+                changedMemoryAddresses.add(i);
+            }
+        }
+
+        applyMemoryHighlights();
+    }
+}
+
+function applyMemoryHighlights() {
+
+    const rows = document.querySelectorAll(
+        "#memoryTableBody tr"
+    );
+
+    changedMemoryAddresses.forEach(address => {
+
+        if (rows[address] && rows[address].cells[1]) {
+            rows[address].cells[1]
+                .classList.add("value-glow");
+        }
+    });
+}
+
+
+/* STEP — CHECK ERRORS ONLY HERE */
+
+async function stepCPU(){
+
+    if(running)return;
+
+    if(checkProgramErrors().length){
+        setStatus("PROGRAM ERROR","#ef4444");
+        return;
+    }
+
+    try{
+        const before=await getState();
+
+        if(before.halted){
+            setStatus("HALTED","#ef4444");
+            return;
+        }
+
+        const pc=before.programCounter;
+        const instruction=program[pc]||"Unknown";
+
+        const r=await fetch(API_BASE+"/api/step",{
+            method:"POST"
+        });
+
+        const data = await r.json();
+
+        if(!r.ok || data.ok === false){
+            throw new Error(data.error || "Request failed");
+        }
+
+        updateExecutionTime(data);
+
+        const after = data.state ?? data;
+
+        
+        
+        previousState=after;
+        updateCPUDisplay(after);
+        animateExecutionTrace();
+        glowCPU();
+        highlightChanges(before, after);
+
+
+        await updateStack();
+        await updateQueue();
+
+        showTrace(instruction,before,after);
+
+        setStatus(
+            after.halted?"HALTED":"STEPPED",
+            after.halted?"#ef4444":"#eab308"
+        );
+
+    }catch(e){
+        console.error(e);
+        setStatus("SERVER ERROR","#ef4444");
+    }
+}
+
+/* FETCH → DECODE → EXECUTE ANIMATION */
+
+function animateExecutionTrace() {
+    const stages = [
+        "fetchDetail",
+        "decodeDetail",
+        "executeDetail"
+    ];
+
+    stages.forEach((id, index) => {
+        setTimeout(() => {
+            const element = document.getElementById(id);
+
+            if (!element) return;
+
+            element.classList.remove("trace-animate");
+            void element.offsetWidth;
+            element.classList.add("trace-animate");
+
+        }, index * 300);
+    });
+}
+
+
+/* STEP USED BY RUN */
+
+async function stepCPUForRun(){
+
+    const before=await getState();
+
+    if(before.halted)return;
+
+    const pc=before.programCounter;
+    const instruction=program[pc]||"Unknown";
+
+    const r=await fetch(API_BASE+"/api/step",{
+            method:"POST"
+        });
+
+    const data = await r.json();
+
+        if(!r.ok || data.ok === false){
+            throw new Error(data.error || "Request failed");
+        }
+
+updateExecutionTime(data);
+
+const after = data.state ?? data;
+
+   previousState=after;
+    updateCPUDisplay(after);
+    animateExecutionTrace();
+    glowCPU();
+    highlightChanges(before, after);
+
+    await updateStack();
+    await updateQueue();
+
+    showTrace(instruction,before,after);
+    selectInstruction(after.programCounter);
+    return data.elapsedNanos || 0;
+}
+
+/* RUN — CHECK ERRORS ONLY HERE */
+
+async function runCPU(){
+
+    if(running)return;
+
+    if(checkProgramErrors().length){
+        setStatus("PROGRAM ERROR","#ef4444");
+        return;
+    }
+
+        running=true;
+    stopRequested=false;
+    let totalExecutionNanos = 0;
+
+document.getElementById("totalRunTime").textContent = "-- ms";
+
+    // Reset previous program run time
+    document.getElementById("totalRunTime").textContent = "-- ms";
+
+    // Start measuring complete RUN
+   
+
+    setStatus("RUNNING","#3b82f6");
+    disableButtons(true);
+
+    try{
+        while(!stopRequested){
+
+            const s=await getState();
+
+            if(s.halted)break;
+
+           const instructionNanos = await stepCPUForRun();
+
+            totalExecutionNanos += instructionNanos;
+
+            document.getElementById("totalRunTime").textContent =
+                (totalExecutionNanos / 1000000).toFixed(3) + " ms";
+
+            await sleep(400);
+        }
+
+        if(stopRequested){
+            setStatus("STOPPED","#eab308");
+        }else{
+            setStatus("TERMINATED","#ef4444");
+        }
+
+    }catch(e){
+        console.error(e);
+        setStatus("SERVER ERROR","#ef4444");
+    }
+    
+    disableButtons(false);
+    running=false;
+    stopRequested=false;
+}
+
+/* EXECUTION TRACE */
+function addChange(container, target, before, after){
+
+    const row = document.createElement("div");
+    row.className = "diff-row";
+
+    row.innerHTML = `
+        <span class="diff-target">${target}</span>
+        <span class="diff-change">
+            ${before}
+            <span class="arrow">→</span>
+            ${after}
+        </span>
+    `;
+
+    container.appendChild(row);
+}
+function showTrace(instruction, before, after){
+
+    const parts = instruction.trim().split(/\s+/);
+    const opcode = parts[0].toUpperCase();
+    const operands = parts.slice(1).join(" ");
+
+    // FETCH
+    document.getElementById("fetchDetail").textContent =
+        "✓ " + instruction;
+
+    // DECODE
+    let decodeText = "Opcode: " + opcode;
+
+    if(operands){
+        const ops = operands.split(",");
+
+        if(ops.length === 2){
+            decodeText +=
+                " | Dest: " + ops[0].trim() +
+                " | Source: " + ops[1].trim();
+        }else{
+            decodeText += " | Operand: " + operands;
+        }
+    }
+
+    document.getElementById("decodeDetail").textContent =
+        "✓ " + decodeText;
+
+
+    // EXECUTE
+    let changes = [];
+
+    if(before.accumulator !== after.accumulator){
+        changes.push(
+            "A: " +
+            formatHex(before.accumulator) +
+            " → " +
+            formatHex(after.accumulator)
+        );
+    }
+
+    if(before.bRegister !== after.bRegister){
+        changes.push(
+            "B: " +
+            formatHex(before.bRegister) +
+            " → " +
+            formatHex(after.bRegister)
+        );
+    }
+
+    for(let i=0;i<8;i++){
+        if(before.registers[i] !== after.registers[i]){
+            changes.push(
+                "R" + i + ": " +
+                formatHex(before.registers[i]) +
+                " → " +
+                formatHex(after.registers[i])
+            );
+        }
+    }
+
+    if(before.stackPointer !== after.stackPointer){
+        changes.push(
+            "SP: " +
+            formatHex(before.stackPointer) +
+            " → " +
+            formatHex(after.stackPointer)
+        );
+    }
+
+    if(before.CY !== after.CY){
+        changes.push(
+            "CY: " +
+            (before.CY ? "1" : "0") +
+            " → " +
+            (after.CY ? "1" : "0")
+        );
+    }
+
+    if(before.OV !== after.OV){
+        changes.push(
+            "OV: " +
+            (before.OV ? "1" : "0") +
+            " → " +
+            (after.OV ? "1" : "0")
+        );
+    }
+
+    if(changes.length === 0){
+        changes.push("Instruction completed");
+    }
+
+    document.getElementById("executeDetail").textContent =
+        "✓ " + changes.join(" | ");
+
+
+    // KEEP YOUR EXISTING RESULT (CHANGES) PANEL
+    const c = document.getElementById("diffContainer");
+    c.innerHTML = "";
+
+    addChange(c,"Instruction",instruction,instruction);
+
+    if(before.accumulator !== after.accumulator){
+        addChange(
+            c,
+            "A",
+            formatHex(before.accumulator),
+            formatHex(after.accumulator)
+        );
+    }
+
+    if(before.bRegister !== after.bRegister){
+        addChange(
+            c,
+            "B",
+            formatHex(before.bRegister),
+            formatHex(after.bRegister)
+        );
+    }
+
+    if(before.programCounter !== after.programCounter){
+        addChange(
+            c,
+            "PC",
+            formatHex(before.programCounter),
+            formatHex(after.programCounter)
+        );
+    }
+
+    for(let i=0;i<8;i++){
+        if(before.registers[i] !== after.registers[i]){
+            addChange(
+                c,
+                "R"+i,
+                formatHex(before.registers[i]),
+                formatHex(after.registers[i])
+            );
+        }
+    }
+
+    if(before.CY !== after.CY){
+        addChange(
+            c,
+            "CY",
+            before.CY ? "1" : "0",
+            after.CY ? "1" : "0"
+        );
+    }
+
+    if(before.OV !== after.OV){
+        addChange(
+            c,
+            "OV",
+            before.OV ? "1" : "0",
+            after.OV ? "1" : "0"
+        );
+    }
+}
+function clearTrace(){
+
+    document.getElementById("fetchDetail").textContent = "○";
+    document.getElementById("decodeDetail").textContent = "○";
+    document.getElementById("executeDetail").textContent = "○";
+
+    document.getElementById("diffContainer").innerHTML =
+        '<div class="message">No instruction executed yet.</div>';
+}
+
+/* STATUS */
+
+function setStatus(text,color){
+    const e=document.getElementById("statusDisplay");
+    e.textContent=text;
+    e.style.color=color;
+}
+
+function disableButtons(d){
+    ["btnLoad","btnReset","btnStep","btnRun"].forEach(id=>{
+        document.getElementById(id).disabled=d;
+    });
+}
+
+function sleep(ms){
+    return new Promise(r=>setTimeout(r,ms));
+}
+
+/* STACK */
+
+async function updateStack(){
+
+    try{
+        const s=await getState();
+
+        const table=document.getElementById("stackTableBody");
+        const status=document.getElementById("stackStatus");
+
+        table.innerHTML="";
+
+        const sp=s.stackPointer;
+
+        document.getElementById("stackSP").textContent=formatHex(sp);
+
+        if(sp===7){
+
+            table.innerHTML=`
+                <tr>
+                    <td colspan="2" style="color:#a0a0a0;text-align:center;padding:15px;">
+                        Stack is empty
+                    </td>
+                </tr>`;
+
+            status.textContent="Stack is empty.";
+
+        }else{
+
+            for(let i=sp;i>7;i--){
+                const value=s.memory[i]??0;
+
+                table.innerHTML+=`
+                    <tr>
+                        <td>${formatHex(i)}</td>
+                        <td>${formatHex(value)}</td>
+                    </tr>`;
+            }
+
+            status.textContent=sp===0xFF?"Stack is full.":"Stack ready.";
+        }
+
+    }catch(e){
+        console.error("Stack update failed:",e);
+    }
+}
+
+/* FIFO QUEUE */
+
+const QUEUE_LIMIT=5;
+
+async function updateQueue(){
+
+    try{
+        const s=await getState();
+
+        const d=document.getElementById("queueDisplay");
+        const status=document.getElementById("queueOperationStatus");
+
+        d.innerHTML="";
+
+        if(s.queueSize===0){
+
+            d.innerHTML=`
+                <div style="width:100%;text-align:center;padding:12px;color:#a0a0a0;">
+                    Queue is empty
+                </div>`;
+
+            status.textContent="Queue is empty.";
+
+        }else{
+
+            s.queue.forEach(v=>{
+                d.innerHTML+=`<div class="queue-item">${formatHex(v)}</div>`;
+            });
+
+            status.textContent=s.queueSize===QUEUE_LIMIT
+                ?"Queue is full.":"Queue ready.";
+        }
+
+        document.getElementById("queueCount").textContent=
+            s.queueSize+"/"+QUEUE_LIMIT;
+
+        document.getElementById("queueStatus").textContent=
+            s.queueSize===QUEUE_LIMIT?"FULL":s.queueSize?"READY":"EMPTY";
+
+    }catch(e){
+        console.error("Queue update failed:",e);
+    }
+}
+
+/* BUTTON EVENTS */
+
+document.getElementById("btnLoad").addEventListener("click",()=>{
+    loadProgram();
+});
+
+document.getElementById("btnReset").addEventListener("click",()=>{
+    resetCPU();
+});
+
+document.getElementById("btnStep").addEventListener("click",()=>{
+    stepCPU().catch(error=>console.error("STEP failed:",error));
+});
+
+document.getElementById("btnRun").addEventListener("click",()=>{
+    runCPU();
+});
+
+document.getElementById("btnStop").addEventListener("click",()=>{
+    stopRequested=true;
+});
+
+/* INITIALIZE — NO ERROR CHECK */
+
+async function initializeSimulator(){
+
+    try{
+        readProgram();
+
+        const s=await getState();
+        previousState=s;
+
+        updateCPUDisplay(s);
+        await updateStack();
+        await updateQueue();
+
+        if(!s.halted){
+            selectInstruction(s.programCounter);
+        }
+
+    }catch(e){
+        console.error("Initialization failed:",e);
+        setStatus("SERVER OFFLINE","#ef4444");
+    }
+}
+
+initializeSimulator();
+
+</script>
+</body>
+</html>
