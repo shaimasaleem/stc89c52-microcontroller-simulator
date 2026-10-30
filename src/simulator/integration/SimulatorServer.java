@@ -7,37 +7,12 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.net.Socket;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 
 public class SimulatorServer {
-
-    // =====================================================
-    // QUEUES
-    // =====================================================
-    // commandQueue  -> sends commands to Core
-    // responseQueue -> receives responses from Core
-
-    private BlockingQueue<String> commandQueue;
-    private BlockingQueue<String> responseQueue;
-
-
-    // =====================================================
-    // CONSTRUCTOR
-    // =====================================================
-    // Main.java will provide the queues during integration.
-
-    public SimulatorServer(
-            BlockingQueue<String> commandQueue,
-            BlockingQueue<String> responseQueue) {
-
-        this.commandQueue = commandQueue;
-        this.responseQueue = responseQueue;
-    }
 
 
     // =====================================================
@@ -46,30 +21,11 @@ public class SimulatorServer {
 
     public static void main(String[] args) throws Exception {
 
-        /*
-         * Temporary queues for integration/testing.
-         *
-         * Main.java can provide the actual queues later.
-         */
+    SimulatorServer simulatorServer =
+            new SimulatorServer();
 
-        BlockingQueue<String> commandQueue =
-                new java.util.concurrent.LinkedBlockingQueue<>();
-
-        BlockingQueue<String> responseQueue =
-                new java.util.concurrent.LinkedBlockingQueue<>();
-
-
-        SimulatorServer simulatorServer =
-                new SimulatorServer(
-                        commandQueue,
-                        responseQueue
-                );
-
-
-        simulatorServer.startServer();
-    }
-
-
+    simulatorServer.startServer();
+}
     // =====================================================
     // START SERVER
     // =====================================================
@@ -146,18 +102,7 @@ public class SimulatorServer {
 
         server.start();
 
-
-        System.out.println("----------------------------------");
-        System.out.println(
-                "STC89C52 Simulator UI Server Started"
-        );
-        System.out.println(
-                "Open: http://localhost:8080"
-        );
-        System.out.println(
-                "IPC: BlockingQueue"
-        );
-        System.out.println("----------------------------------");
+        System.out.println("[UI] Started - Port 8080"); 
 
 
         Thread.currentThread().join();
@@ -167,7 +112,7 @@ public class SimulatorServer {
     // =====================================================
     // SEND COMMAND TO CORE
     // =====================================================
-    // UI sends the command through BlockingQueue.
+    // UI sends commands to the Core process using TCP sockets.
     //
     // STEP
     // RUN
@@ -178,35 +123,75 @@ public class SimulatorServer {
     // DEQUEUE
     // PUSH
     // POP
+// =====================================================
+// SEND UI LOG TO LOGGER PROCESS
+// =====================================================
 
+private void sendUILog(String message) {
+
+    try (
+        Socket socket = new Socket("127.0.0.1", 5002);
+
+        PrintWriter output = new PrintWriter(
+                socket.getOutputStream(), true)
+    ) {
+
+        output.println("[UI] " + message);
+
+    } catch (IOException e) {
+
+        System.out.println(
+                "UI Logger unavailable: " + e.getMessage()
+        );
+    }
+}
  
 private synchronized String sendCommand(String command)
         throws IOException {
+
+    // Decide whether this command should be stored in UI history
+    // STATE is ignored because the UI requests it many times automatically
+    boolean shouldLog =
+            !command.trim().equalsIgnoreCase("STATE");
+
+    // Send UI history to Logger
+    if (shouldLog) {
+
+        if (command.startsWith("LOAD|")) {
+            sendUILog("Sending program to Core");
+        } else {
+            sendUILog("Sending to Core: " + command);
+        }
+    }
 
     try (
         Socket socket = new Socket("127.0.0.1", 5001);
 
         PrintWriter output = new PrintWriter(
-            socket.getOutputStream(), true);
+                socket.getOutputStream(), true);
 
         BufferedReader input = new BufferedReader(
-            new InputStreamReader(socket.getInputStream()))
+                new InputStreamReader(socket.getInputStream()))
     ) {
 
-        // Send command to independent Core process
+        // Send command to Core
         output.println(command);
 
-        // Receive CPU response
+        // Receive response from Core
         String response = input.readLine();
 
         if (response == null) {
             throw new IOException("Core disconnected");
         }
 
+        // Store UI response history
+        if (shouldLog) {
+            sendUILog("Response received from Core");
+        }
+
         return response;
     }
 }
-
 
 
     // =====================================================
@@ -876,430 +861,13 @@ private void sendJSON(
         output.close();
     }
     
+
 public static void startSocketServer() throws Exception {
 
-    SimulatorServer server = new SimulatorServer(
-        new java.util.concurrent.LinkedBlockingQueue<>(),
-        new java.util.concurrent.LinkedBlockingQueue<>()
-    );
+    SimulatorServer server = new SimulatorServer();
 
     server.startServer();
 }
 
 
-
-
-}===
-
-    private void handleRun(
-            HttpExchange exchange)
-            throws IOException {
-
-        if (handleOptions(exchange)) {
-            return;
-        }
-
-
-        if (!exchange.getRequestMethod()
-                .equalsIgnoreCase("POST")) {
-
-            sendResponse(
-                    exchange,
-                    405,
-                    "Method Not Allowed"
-            );
-
-            return;
-        }
-
-
-        try {
-
-            /*
-             * Send RUN command to Core.
-             */
-
-            String response =
-                    sendCommand("RUN");
-
-
-            sendJSON(
-                    exchange,
-                    response
-            );
-
-        } catch (InterruptedException e) {
-
-            Thread.currentThread().interrupt();
-
-            sendResponse(
-                    exchange,
-                    500,
-                    "Core response interrupted"
-            );
-        }
-    }
-
-
-    // =====================================================
-    // ENQUEUE
-    // =====================================================
-
-    private void handleEnqueue(
-            HttpExchange exchange)
-            throws IOException {
-
-        if (handleOptions(exchange)) {
-            return;
-        }
-
-
-        if (!exchange.getRequestMethod()
-                .equalsIgnoreCase("POST")) {
-
-            sendResponse(
-                    exchange,
-                    405,
-                    "Method Not Allowed"
-            );
-
-            return;
-        }
-
-
-        String query =
-                exchange.getRequestURI().getQuery();
-
-
-        if (query == null ||
-                !query.startsWith("value=")) {
-
-            sendResponse(
-                    exchange,
-                    400,
-                    "Missing value"
-            );
-
-            return;
-        }
-
-
-        String value =
-                query.substring(6);
-
-
-        try {
-
-            String response =
-                    sendCommand(
-                            "ENQUEUE|" + value
-                    );
-
-
-            sendResponse(
-                    exchange,
-                    200,
-                    response
-            );
-
-        } catch (InterruptedException e) {
-
-            Thread.currentThread().interrupt();
-
-            sendResponse(
-                    exchange,
-                    500,
-                    "Core response interrupted"
-            );
-        }
-    }
-
-
-    // =====================================================
-    // DEQUEUE
-    // =====================================================
-
-    private void handleDequeue(
-            HttpExchange exchange)
-            throws IOException {
-
-        if (handleOptions(exchange)) {
-            return;
-        }
-
-
-        if (!exchange.getRequestMethod()
-                .equalsIgnoreCase("POST")) {
-
-            sendResponse(
-                    exchange,
-                    405,
-                    "Method Not Allowed"
-            );
-
-            return;
-        }
-
-
-        try {
-
-            String response =
-                    sendCommand("DEQUEUE");
-
-
-            sendResponse(
-                    exchange,
-                    200,
-                    response
-            );
-
-        } catch (InterruptedException e) {
-
-            Thread.currentThread().interrupt();
-
-            sendResponse(
-                    exchange,
-                    500,
-                    "Core response interrupted"
-            );
-        }
-    }
-
-
-    // =====================================================
-    // PUSH
-    // =====================================================
-
-    private void handlePush(
-            HttpExchange exchange)
-            throws IOException {
-
-        if (handleOptions(exchange)) {
-            return;
-        }
-
-
-        if (!exchange.getRequestMethod()
-                .equalsIgnoreCase("POST")) {
-
-            sendResponse(
-                    exchange,
-                    405,
-                    "Method Not Allowed"
-            );
-
-            return;
-        }
-
-
-        String query =
-                exchange.getRequestURI().getQuery();
-
-
-        if (query == null ||
-                !query.startsWith("value=")) {
-
-            sendResponse(
-                    exchange,
-                    400,
-                    "Missing value"
-            );
-
-            return;
-        }
-
-
-        String value =
-                query.substring(6);
-
-
-        try {
-
-            String response =
-                    sendCommand(
-                            "PUSH|" + value
-                    );
-
-
-            sendResponse(
-                    exchange,
-                    200,
-                    response
-            );
-
-        } catch (InterruptedException e) {
-
-            Thread.currentThread().interrupt();
-
-            sendResponse(
-                    exchange,
-                    500,
-                    "Core response interrupted"
-            );
-        }
-    }
-
-
-    // =====================================================
-    // POP
-    // =====================================================
-
-    private void handlePop(
-            HttpExchange exchange)
-            throws IOException {
-
-        if (handleOptions(exchange)) {
-            return;
-        }
-
-
-        if (!exchange.getRequestMethod()
-                .equalsIgnoreCase("POST")) {
-
-            sendResponse(
-                    exchange,
-                    405,
-                    "Method Not Allowed"
-            );
-
-            return;
-        }
-
-
-        try {
-
-            String response =
-                    sendCommand("POP");
-
-
-            sendResponse(
-                    exchange,
-                    200,
-                    response
-            );
-
-        } catch (InterruptedException e) {
-
-            Thread.currentThread().interrupt();
-
-            sendResponse(
-                    exchange,
-                    500,
-                    "Core response interrupted"
-            );
-        }
-    }
-
-
-    // =====================================================
-    // HOME PAGE
-    // =====================================================
-
-   private void handleHome(HttpExchange exchange)
-        throws IOException {
-
-    if (!exchange.getRequestMethod()
-            .equalsIgnoreCase("GET")) {
-
-        sendResponse(exchange, 405, "Method Not Allowed");
-        return;
-    }
-
-    String htmlPath = "ui-process/index.html";
-
-    java.nio.file.Path path =
-            java.nio.file.Paths.get(htmlPath)
-                    .toAbsolutePath()
-                    .normalize();
-
-    if (!java.nio.file.Files.exists(path)) {
-        sendResponse(
-                exchange,
-                404,
-                "index.html not found: " + path
-        );
-        return;
-    }
-
-    byte[] data = java.nio.file.Files.readAllBytes(path);
-
-    exchange.getResponseHeaders().set(
-            "Content-Type",
-            "text/html; charset=UTF-8"
-    );
-
-    exchange.sendResponseHeaders(200, data.length);
-
-    try (OutputStream output = exchange.getResponseBody()) {
-        output.write(data);
-    }
-}
-// SEND JSON RESPONSE
-private void sendJSON(
-        HttpExchange exchange,
-        String response)
-        throws IOException {
-
-    addCorsHeaders(exchange);
-
-    byte[] data = response.getBytes(
-            StandardCharsets.UTF_8
-    );
-
-    exchange.getResponseHeaders().set(
-            "Content-Type",
-            "application/json; charset=UTF-8"
-    );
-
-    exchange.sendResponseHeaders(
-            200,
-            data.length
-    );
-
-    try (OutputStream output =
-                 exchange.getResponseBody()) {
-
-        output.write(data);
-    }
-}
-
-    // =====================================================
-    // SEND NORMAL RESPONSE
-    // =====================================================
-
-    private void sendResponse(
-            HttpExchange exchange,
-            int statusCode,
-            String response)
-            throws IOException {
-
-        addCorsHeaders(exchange);
-
-
-        byte[] data =
-                response.getBytes(
-                        StandardCharsets.UTF_8
-                );
-
-
-        exchange.getResponseHeaders().set(
-                "Content-Type",
-                "text/plain"
-        );
-
-
-        exchange.sendResponseHeaders(
-                statusCode,
-                data.length
-        );
-
-
-        OutputStream output =
-                exchange.getResponseBody();
-
-
-        output.write(data);
-
-        output.close();
-    }
 }
