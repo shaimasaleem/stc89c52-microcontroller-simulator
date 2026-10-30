@@ -81,9 +81,10 @@ public class CPU {
         value = value & 0xFF;
 
         // Store value in destination
-        if (destination.equals("A")) {
-            accumulator = value;
-        }
+       if (destination.equals("A")) {
+    accumulator = value;
+    updateParity();
+}
         else if (destination.equals("B")) {
             bRegister = value;
         }
@@ -114,10 +115,11 @@ public class CPU {
 
     break;
         case "MOVC":
-    if (operands[0].equals("A")) {
-        int address = Integer.parseInt(operands[1]);
-        accumulator = codeMemory[address];
-    }
+   if (operands[0].equals("A")) {
+    int address = Integer.parseInt(operands[1]);
+    accumulator = codeMemory[address];
+    updateParity();
+}
     break;
       case "ADD":
     try {
@@ -127,9 +129,10 @@ public class CPU {
         int destValue = getRegisterValue(destination);
         int sourceValue = getOperandValue(source);
 
-        int result = destValue + sourceValue;
+       int result = destValue + sourceValue;
 
         CY = result > 255;
+        AC = ((destValue & 0x0F) + (sourceValue & 0x0F)) > 0x0F;
         OV = ((destValue ^ result) & (sourceValue ^ result) & 0x80) != 0;
 
         setRegisterValue(destination, result & 0xFF);
@@ -146,12 +149,15 @@ public class CPU {
         int destValue = getRegisterValue(destination);
         int sourceValue = getOperandValue(source);
 
-        int result = destValue - sourceValue;
+       int result = destValue - sourceValue;
 
         CY = result < 0;
 
-        setRegisterValue(destination, result & 0xFF);
+        AC = (destValue & 0x0F) < (sourceValue & 0x0F);
 
+        OV = ((destValue ^ sourceValue) & (destValue ^ result) & 0x80) != 0;
+
+        setRegisterValue(destination, result & 0xFF);
     } catch (Exception e) {
         System.out.println("ERROR: Invalid SUB instruction.");
     }
@@ -196,19 +202,31 @@ public class CPU {
             halted = true;
     break;
         case "PUSH":
-            int pushValue = Integer.parseInt(operands[0].substring(1));
-            stackMemory.push(pushValue);
-    break;
+            try {
+                int pushValue = getOperandValue(operands[0]);
+                stackMemory.push(pushValue);
+            } catch (Exception e) {
+                System.out.println("ERROR: Invalid PUSH instruction.");
+            }
+        break;
 
         case "POP":
-    if (operands[0].equals("A")) {
-        accumulator = stackMemory.pop();
+    try {
+        String destination = operands[0].trim().toUpperCase();
+        int popValue = stackMemory.pop();
+        setRegisterValue(destination, popValue);
+    } catch (Exception e) {
+        System.out.println("ERROR: Invalid POP instruction.");
     }
-    break;
+        break;
         case "ENQUEUE":
-            int enqueueValue = Integer.parseInt(operands[0].substring(1));
-            fifoQueue.enqueue(enqueueValue);
-    break;
+    try {
+        int enqueueValue = getOperandValue(operands[0]);
+        fifoQueue.enqueue(enqueueValue);
+    } catch (Exception e) {
+        System.out.println("ERROR: Invalid ENQUEUE instruction.");
+    }
+        break;
 
         case "DEQUEUE":
             fifoQueue.dequeue();
@@ -261,8 +279,9 @@ private void setRegisterValue(String register, int value) {
     value = value & 0xFF;
 
     if (register.equals("A")) {
-        accumulator = value;
-    }
+    accumulator = value;
+    updateParity();
+}
     else if (register.equals("B")) {
         bRegister = value;
     }
@@ -277,8 +296,13 @@ private void setRegisterValue(String register, int value) {
         throw new IllegalArgumentException(
                 "Invalid register: " + register);
     }
+
 }
 
+    private void updateParity() {
+        int ones = Integer.bitCount(accumulator & 0xFF);
+        P = (ones % 2 != 0);
+    }
     public int getAccumulator() {
         return accumulator;
     }
