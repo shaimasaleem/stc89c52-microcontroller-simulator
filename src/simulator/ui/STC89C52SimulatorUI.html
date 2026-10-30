@@ -6,10 +6,14 @@
 <title>STC89C52 Microcontroller Simulator - Week 4</title>
 
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
+    *{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
 
 body{
-    background:#0b0813;
+    background:#050505;
     color:#fff;
     font-family:Consolas,"Lucida Console","Courier New",monospace;
     padding:14px 18px;
@@ -20,29 +24,29 @@ body{
     max-width:1500px;
     width:100%;
     margin:auto;
-    background:#0e0a1a;
-    border:1px solid #7c3aed;
+    background:#090909;
+    border:1px solid #555b64;
     border-radius:10px;
     padding:18px 20px;
-    box-shadow:0 0 35px rgba(124,58,237,.18);
+    box-shadow:0 0 35px rgba(190,198,210,.12);
 }
 
 .header{
     text-align:center;
     margin-bottom:12px;
     padding:4px 0 12px;
-    border-bottom:1px solid #251744;
+    border-bottom:1px solid #303030;
 }
 
 .header h1{
-    color:#c084fc;
+    color:#c4c8cf;
     font-size:1.45rem;
     letter-spacing:2px;
-    text-shadow:0 0 12px rgba(192,132,252,.25);
+    text-shadow:0 0 12px rgba(190,198,210,.16);
 }
 
 .header .subtitle{
-    color:#a78bfa;
+    color:#cccccc;
     font-size:.78rem;
     letter-spacing:1px;
     margin-top:3px;
@@ -52,19 +56,22 @@ body{
     display:flex;
     justify-content:space-between;
     align-items:center;
-    background:linear-gradient(90deg,#140e26,#17102c,#140e26);
-    border:1px solid #6d28d9;
+    background:linear-gradient(90deg,#121212,#181818,#121212);
+    border:1px solid #777777;
     border-radius:8px;
     padding:10px 14px;
     margin-bottom:12px;
 }
 
-.btn-group{display:flex;gap:8px}
+.btn-group{
+    display:flex;
+    gap:8px;
+}
 
 .btn{
-    background:#1a1233;
-    color:#d8b4fe;
-    border:1px solid #6b21a8;
+    background:#1b1b1b;
+    color:#b8bdc5;
+    border:1px solid #666666;
     border-radius:6px;
     padding:7px 16px;
     min-width:82px;
@@ -72,22 +79,25 @@ body{
     font-size:.8rem;
     font-weight:700;
     cursor:pointer;
-    transition:transform .15s ease,background .15s ease,border-color .15s ease;
+    transition:transform .15s ease, background .15s ease, border-color .15s ease;
 }
 
 .btn:hover{
-    background:#2e1a5a;
-    border-color:#a855f7;
+    background:#303030;
+    border-color:#d0d4da;
     color:#fff;
     transform:translateY(-1px);
-    box-shadow:0 0 12px rgba(168,85,247,.18);
+    box-shadow:0 0 12px rgba(190,198,210,.12);
 }
 
-.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn:disabled{
+    opacity:.45;
+    cursor:not-allowed;
+}
 
 .status-badge{
-    background:#130d24;
-    border:1px solid #581c87;
+    background:#111111;
+    border:1px solid #505050;
     border-radius:6px;
     padding:6px 12px;
     min-width:145px;
@@ -96,23 +106,32 @@ body{
     font-weight:700;
 }
 
-.status-label{color:#fff}
-.status-value{color:#22c55e;letter-spacing:1px}
-.program-editor{margin-bottom:12px}
+.status-label{
+    color:#fff;
+}
+
+.status-value{
+    color:#22c55e;
+    letter-spacing:1px;
+}
+
+.program-editor{
+    margin-bottom:12px;
+}
 
 .panel-card{
-    background:#120d24;
-    border:1px solid #581c87;
+    background:#101010;
+    border:1px solid #505050;
     border-radius:8px;
     padding:10px 12px;
-    box-shadow:inset 0 0 18px rgba(124,58,237,.025);
+    box-shadow:inset 0 0 18px rgba(190,198,210,.025);
 }
 
 .panel-title{
     display:flex;
     align-items:center;
     gap:7px;
-    color:#c084fc;
+    color:#c4c8cf;
     font-size:.8rem;
     font-weight:700;
     letter-spacing:1px;
@@ -124,7 +143,7 @@ body{
     width:4px;
     height:13px;
     border-radius:2px;
-    background:#c084fc;
+    background:#c4c8cf;
     display:inline-block;
 }
 
@@ -132,9 +151,9 @@ body{
     width:100%;
     height:155px;
     resize:vertical;
-    background:#07050c;
+    background:#050505;
     color:#fff;
-    border:1px solid #4c1d95;
+    border:1px solid #555555;
     border-radius:6px;
     padding:10px;
     font-family:inherit;
@@ -144,38 +163,70 @@ body{
 }
 
 .program-input:focus{
-    border-color:#a855f7;
-    box-shadow:0 0 0 1px #7c3aed,0 0 14px rgba(124,58,237,.12);
+    border-color:#d0d4da;
+    box-shadow:0 0 0 1px #555b64,0 0 14px rgba(190,198,210,.10);
 }
 
 .input-help{
-    color:#94a3b8;
+    color:#a0a0a0;
     font-size:.7rem;
     margin-top:5px;
 }
+
+
+/* =========================
+   MAIN DASHBOARD
+   ========================= */
 
 .main-grid{
     display:grid;
     grid-template-columns:2.2fr .9fr 1fr .9fr 1.15fr;
     gap:10px;
     margin-bottom:10px;
+    height:390px;
 }
 
-.left-stack,.right-stack{
+.main-grid > .panel-card{
+    height:100%;
+    min-height:0;
+    overflow:hidden;
+}
+
+.left-stack,
+.right-stack{
     display:flex;
     flex-direction:column;
     gap:10px;
+    height:100%;
+    min-height:0;
+}
+
+.left-stack > .panel-card{
+    flex:1 1 auto;
+    min-height:0;
+    overflow:hidden;
+}
+
+.left-stack > .current-instr-card{
+    flex:0 0 auto;
 }
 
 .program-table-container{
     overflow-y:auto;
-    max-height:235px;
+    height:calc(100% - 28px);
+    max-height:none;
 }
 
 .memory-container{
     overflow-y:auto;
-    max-height:300px;
+    height:calc(100% - 28px);
+    max-height:none;
 }
+
+
+/* =========================
+   TABLES
+   ========================= */
 
 .data-table{
     width:100%;
@@ -184,14 +235,14 @@ body{
 }
 
 .data-table th{
-    color:#a855f7;
+    color:#d0d4da;
     text-align:left;
     padding:4px 5px 6px;
-    border-bottom:1px solid #4c1d95;
+    border-bottom:1px solid #555555;
     font-size:.72rem;
     position:sticky;
     top:0;
-    background:#100a20;
+    background:#111111;
 }
 
 .data-table td{
@@ -200,21 +251,39 @@ body{
     white-space:nowrap;
 }
 
-.data-table tr:hover{background:#20143d}
-
-.data-table tr.active-row{
-    background:#4c1d95;
-    font-weight:700;
-    box-shadow:inset 3px 0 0 #c084fc;
+.data-table tr:hover{
+    background:#252525;
 }
 
-.pointer-cell{width:22px;text-align:center}
-.addr-cell{width:60px;color:#d8b4fe!important}
-.category-cell{color:#94a3b8!important;font-size:.72rem}
+.data-table tr.active-row{
+    background:#555555;
+    font-weight:700;
+    box-shadow:inset 3px 0 0 #c4c8cf;
+}
+
+.pointer-cell{
+    width:22px;
+    text-align:center;
+}
+
+.addr-cell{
+    width:60px;
+    color:#b8bdc5!important;
+}
+
+.category-cell{
+    color:#a0a0a0!important;
+    font-size:.72rem;
+}
+
+
+/* =========================
+   CURRENT INSTRUCTION
+   ========================= */
 
 .current-instr-card{
-    background:linear-gradient(135deg,#150f2b,#100a20);
-    border:1px solid #7c3aed;
+    background:linear-gradient(135deg,#141414,#111111);
+    border:1px solid #555b64;
     border-radius:8px;
     padding:10px 14px;
     min-height:90px;
@@ -228,7 +297,16 @@ body{
     text-shadow:0 0 8px rgba(255,255,255,.12);
 }
 
-.addr-text{color:#d8b4fe;font-size:.8rem;margin-top:5px}
+.addr-text{
+    color:#b8bdc5;
+    font-size:.8rem;
+    margin-top:5px;
+}
+
+
+/* =========================
+   REGISTERS
+   ========================= */
 
 .registers-list{
     display:flex;
@@ -240,14 +318,29 @@ body{
     display:flex;
     justify-content:space-between;
     padding:4px 5px;
-    border-bottom:1px solid #251744;
+    border-bottom:1px solid #303030;
     font-size:.78rem;
 }
 
-.reg-name{color:#c084fc;font-weight:700}
-.reg-val{color:#fff;font-weight:700}
+.reg-name{
+    color:#c4c8cf;
+    font-weight:700;
+}
 
-.stack-container{max-height:245px;overflow-y:auto}
+.reg-val{
+    color:#fff;
+    font-weight:700;
+}
+
+
+/* =========================
+   STACK
+   ========================= */
+
+.stack-container{
+    max-height:245px;
+    overflow-y:auto;
+}
 
 .stack-table{
     width:100%;
@@ -256,17 +349,17 @@ body{
 }
 
 .stack-table th{
-    color:#c084fc;
+    color:#c4c8cf;
     padding:5px;
-    border-bottom:1px solid #4c1d95;
-    background:#100a20;
+    border-bottom:1px solid #555555;
+    background:#111111;
 }
 
 .stack-table td{
     color:#fff;
     padding:4px;
     text-align:center;
-    border-bottom:1px solid #251744;
+    border-bottom:1px solid #303030;
 }
 
 .week3-info{
@@ -277,8 +370,21 @@ body{
     font-size:.7rem;
 }
 
-.week3-value{color:#c084fc;font-weight:700}
-.week3-message{color:#94a3b8;font-size:.68rem;margin-top:7px}
+.week3-value{
+    color:#c4c8cf;
+    font-weight:700;
+}
+
+.week3-message{
+    color:#a0a0a0;
+    font-size:.68rem;
+    margin-top:7px;
+}
+
+
+/* =========================
+   FIFO QUEUE
+   ========================= */
 
 .queue-display{
     display:flex;
@@ -291,22 +397,29 @@ body{
     flex:1;
     text-align:center;
     padding:10px 4px;
-    background:#100b20;
-    border:1px solid #6b21a8;
+    background:#111111;
+    border:1px solid #666666;
     border-radius:4px;
     color:#fff;
     font-weight:700;
     transition:transform .15s ease;
 }
 
-.queue-item:hover{transform:translateY(-2px)}
+.queue-item:hover{
+    transform:translateY(-2px);
+}
 
 .queue-label{
     display:flex;
     justify-content:space-between;
-    color:#d8b4fe;
+    color:#b8bdc5;
     font-size:.72rem;
 }
+
+
+/* =========================
+   FLAGS
+   ========================= */
 
 .flags-table{
     width:100%;
@@ -315,11 +428,11 @@ body{
 }
 
 .flags-table th{
-    color:#a855f7;
+    color:#d0d4da;
     font-size:.72rem;
     padding:5px;
-    border-bottom:1px solid #4c1d95;
-    background:#100a20;
+    border-bottom:1px solid #555555;
+    background:#111111;
 }
 
 .flags-table td{
@@ -329,7 +442,14 @@ body{
     padding:7px;
 }
 
-.flag-active{color:#22c55e!important}
+.flag-active{
+    color:#22c55e!important;
+}
+
+
+/* =========================
+   EXECUTION TRACE
+   ========================= */
 
 .trace-layout{
     display:grid;
@@ -338,8 +458,8 @@ body{
 }
 
 .trace-card{
-    background:linear-gradient(135deg,#120d24,#0f0a1c);
-    border:1px solid #581c87;
+    background:linear-gradient(135deg,#101010,#0a0a0a);
+    border:1px solid #505050;
     border-radius:8px;
     padding:10px 14px;
 }
@@ -357,12 +477,20 @@ body{
     font-weight:700;
     padding:4px 7px;
     border-radius:4px;
-    background:#100b20;
+    background:#111111;
 }
 
-.stage-name{color:#fff}
-.stage-check{color:#64748b}
-.stage-check.active{color:#22c55e}
+.stage-name{
+    color:#fff;
+}
+
+.stage-check{
+    color:#777777;
+}
+
+.stage-check.active{
+    color:#22c55e;
+}
 
 .diff-row{
     display:flex;
@@ -371,14 +499,33 @@ body{
     padding:3px 0;
 }
 
-.diff-target{color:#fff;width:85px}
-.diff-change{color:#fff;font-weight:700}
-.arrow{color:#a855f7}
-.message{color:#94a3b8;font-size:.78rem}
+.diff-target{
+    color:#fff;
+    width:85px;
+}
 
-/* ERROR PANEL AT THE BOTTOM */
+.diff-change{
+    color:#fff;
+    font-weight:700;
+}
 
-.error-panel{margin-top:12px}
+.arrow{
+    color:#d0d4da;
+}
+
+.message{
+    color:#a0a0a0;
+    font-size:.78rem;
+}
+
+
+/* =========================
+   ERROR PANEL
+   ========================= */
+
+.error-panel{
+    margin-top:12px;
+}
 
 .error-heading{
     display:flex;
@@ -388,7 +535,7 @@ body{
 }
 
 .error-count{
-    color:#94a3b8;
+    color:#a0a0a0;
     font-size:.75rem;
     font-weight:700;
 }
@@ -400,22 +547,27 @@ body{
     line-height:1.6;
 }
 
-.error-empty{color:#94a3b8;padding:6px 0}
+.error-empty{
+    color:#a0a0a0;
+    padding:6px 0;
+}
 
 .error-item{
     padding:8px 10px;
     margin-top:7px;
-    background:#261020;
+    background:#242424;
     border:1px solid #7f1d1d;
     border-radius:5px;
-    color:#fecdd3;
+    color:#d5d8de;
 }
 
-.error-item strong{color:#fda4af}
+.error-item strong{
+    color:#c4c8cf;
+}
 
 .error-code{
     display:block;
-    color:#e9d5ff;
+    color:#c8ccd3;
     margin-top:3px;
     white-space:pre-wrap;
     overflow-wrap:anywhere;
@@ -428,9 +580,9 @@ body{
 }
 
 .error-clear{
-    background:#1a1233;
-    color:#d8b4fe;
-    border:1px solid #6b21a8;
+    background:#1b1b1b;
+    color:#b8bdc5;
+    border:1px solid #666666;
     border-radius:5px;
     padding:5px 10px;
     font:inherit;
@@ -438,85 +590,154 @@ body{
     cursor:pointer;
 }
 
-.error-clear:hover{background:#2e1a5a}
+.error-clear:hover{
+    background:#303030;
+}
 
-::-webkit-scrollbar{width:5px}
-::-webkit-scrollbar-track{background:#0f0a1c}
-::-webkit-scrollbar-thumb{background:#4c1d95;border-radius:4px}
+
+/* =========================
+   SCROLLBAR
+   ========================= */
+
+::-webkit-scrollbar{
+    width:5px;
+}
+
+::-webkit-scrollbar-track{
+    background:#0a0a0a;
+}
+
+::-webkit-scrollbar-thumb{
+    background:#555555;
+    border-radius:4px;
+}
+
+
+/* =========================
+   RESPONSIVE
+   ========================= */
 
 @media(max-width:1050px){
-    .main-grid{grid-template-columns:1.8fr 1fr 1fr}
-    .trace-layout{grid-template-columns:1fr}
+
+    .main-grid{
+        grid-template-columns:1.8fr 1fr 1fr;
+        height:auto;
+    }
+
+    .main-grid > .panel-card{
+        height:auto;
+    }
+
+    .left-stack{
+        height:auto;
+    }
+
+    .program-table-container{
+        height:auto;
+        max-height:235px;
+    }
+
+    .memory-container{
+        height:auto;
+        max-height:300px;
+    }
+
+    .trace-layout{
+        grid-template-columns:1fr;
+    }
 }
 
 @media(max-width:700px){
-    .main-grid{grid-template-columns:1fr}
-    .control-bar{flex-direction:column;gap:10px}
-    .btn-group{flex-wrap:wrap;justify-content:center}
-    .simulator-container{padding:14px 12px}
-    .header h1{font-size:1.05rem}
+
+    .main-grid{
+        grid-template-columns:1fr;
+        height:auto;
+    }
+
+    .control-bar{
+        flex-direction:column;
+        gap:10px;
+    }
+
+    .btn-group{
+        flex-wrap:wrap;
+        justify-content:center;
+    }
+
+    .simulator-container{
+        padding:14px 12px;
+    }
+
+    .header h1{
+        font-size:1.05rem;
+    }
 }
 
 
-/* GLOWING CPU PULSE ANIMATION */
+/* =========================
+   CPU PULSE
+   ========================= */
 
-@keyframes cpuPulse {
-    0% {
-        box-shadow: 0 0 0 rgba(168,85,247,0);
-        border-color: #7c3aed;
+@keyframes cpuPulse{
+
+    0%{
+        box-shadow:0 0 0 rgba(190,198,210,0);
+        border-color:#555b64;
     }
 
-    40% {
+    40%{
         box-shadow:
-            0 0 20px rgba(168,85,247,0.9),
-            0 0 45px rgba(168,85,247,0.5);
-        border-color: #e9d5ff;
+            0 0 16px rgba(190,198,210,0.35),
+            0 0 32px rgba(190,198,210,0.18);
+        border-color:#d0d4da;
     }
 
-    100% {
-        box-shadow: 0 0 0 rgba(168,85,247,0);
-        border-color: #7c3aed;
-    }
-}
-
-.cpu-glow {
-    animation: cpuPulse 0.8s ease-in-out;
-}
-
-
-
-/* NEON GREEN FOR UPDATED VALUES */
-
-.value-glow {
-    color: #39ff14 !important;
-    background-color: rgba(57, 255, 20, 0.08);
-    border-radius: 3px;
-
-    text-shadow: 0 0 5px rgba(57, 255, 20, 0.6);
-
-    box-shadow: none !important;
-}
-
-/* SOFT EXECUTION TRACE ANIMATION */
-
-@keyframes traceFade {
-    from {
-        opacity: 0.35;
-        transform: translateY(5px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
+    100%{
+        box-shadow:0 0 0 rgba(190,198,210,0);
+        border-color:#555b64;
     }
 }
 
-.trace-animate {
-    animation: traceFade 0.4s ease-out;
+.cpu-glow{
+    animation:cpuPulse 0.8s ease-in-out;
 }
 
 
+/* =========================
+   UPDATED VALUE GLOW
+   ========================= */
+
+.value-glow{
+    color:#39ff14!important;
+    background-color:rgba(57,255,20,0.08);
+    border-radius:3px;
+    text-shadow:0 0 5px rgba(57,255,20,0.6);
+    box-shadow:none!important;
+}
+
+
+/* =========================
+   TRACE ANIMATION
+   ========================= */
+
+@keyframes traceFade{
+
+    from{
+        opacity:0.35;
+        transform:translateY(5px);
+    }
+
+    to{
+        opacity:1;
+        transform:translateY(0);
+    }
+}
+
+.trace-animate{
+    animation:traceFade 0.4s ease-out;
+}
 </style>
+
 </head>
 
 <body>
@@ -584,10 +805,11 @@ HALT</textarea>
         Enter one instruction per line. Example: MOV A,#10
     </div>
 </section>
-
 <main class="main-grid">
 
+    <!-- PROGRAM + CURRENT INSTRUCTION -->
     <div class="left-stack">
+
         <div class="panel-card">
             <div class="panel-title">PROGRAM / INSTRUCTIONS</div>
 
@@ -601,63 +823,150 @@ HALT</textarea>
                             <th>CATEGORY</th>
                         </tr>
                     </thead>
+
                     <tbody id="programTableBody"></tbody>
                 </table>
             </div>
         </div>
 
         <div class="current-instr-card">
-            <div class="panel-title">CURRENT INSTRUCTION</div>
-            <div class="instr-text" id="curMnemonic">-</div>
-            <div class="addr-text" id="curAddr">Address : ----</div>
+
+    <div class="panel-title">CURRENT INSTRUCTION</div>
+
+    <div class="instr-text" id="curMnemonic">-</div>
+
+    <div class="addr-text" id="curAddr">Address : ----</div>
+
+    <div style="border-top:1px solid #303030; margin-top:8px; padding-top:6px;">
+
+        <div class="week3-info">
+            <span>INSTRUCTION TIME :</span>
+            <b class="week3-value" id="executionTime">-- ms</b>
         </div>
+
+        <div class="week3-info" style="margin-top:4px;">
+            <span>PROGRAM TIME :</span>
+            <b class="week3-value" id="totalRunTime">-- ms</b>
+        </div>
+
     </div>
 
+</div>
+    </div>
+
+
+    <!-- REGISTERS -->
     <div class="panel-card">
         <div class="panel-title">REGISTERS</div>
 
         <div class="registers-list">
-            <div class="reg-row"><span class="reg-name">PC</span><span class="reg-val" id="regPC">00H</span></div>
-            <div class="reg-row"><span class="reg-name">SP</span><span class="reg-val" id="regSP">07H</span></div>
-            <div class="reg-row"><span class="reg-name">A</span><span class="reg-val" id="regA">00H</span></div>
-            <div class="reg-row"><span class="reg-name">B</span><span class="reg-val" id="regB">00H</span></div>
-            <div class="reg-row"><span class="reg-name">R0</span><span class="reg-val" id="regR0">00H</span></div>
-            <div class="reg-row"><span class="reg-name">R1</span><span class="reg-val" id="regR1">00H</span></div>
-            <div class="reg-row"><span class="reg-name">R2</span><span class="reg-val" id="regR2">00H</span></div>
-            <div class="reg-row"><span class="reg-name">R3</span><span class="reg-val" id="regR3">00H</span></div>
-            <div class="reg-row"><span class="reg-name">R4</span><span class="reg-val" id="regR4">00H</span></div>
-            <div class="reg-row"><span class="reg-name">R5</span><span class="reg-val" id="regR5">00H</span></div>
-            <div class="reg-row"><span class="reg-name">R6</span><span class="reg-val" id="regR6">00H</span></div>
-            <div class="reg-row"><span class="reg-name">R7</span><span class="reg-val" id="regR7">00H</span></div>
+
+            <div class="reg-row">
+                <span class="reg-name">PC</span>
+                <span class="reg-val" id="regPC">00H</span>
+            </div>
+
+            <div class="reg-row">
+                <span class="reg-name">SP</span>
+                <span class="reg-val" id="regSP">07H</span>
+            </div>
+
+            <div class="reg-row">
+                <span class="reg-name">A</span>
+                <span class="reg-val" id="regA">00H</span>
+            </div>
+
+            <div class="reg-row">
+                <span class="reg-name">B</span>
+                <span class="reg-val" id="regB">00H</span>
+            </div>
+
+            <div class="reg-row">
+                <span class="reg-name">R0</span>
+                <span class="reg-val" id="regR0">00H</span>
+            </div>
+
+            <div class="reg-row">
+                <span class="reg-name">R1</span>
+                <span class="reg-val" id="regR1">00H</span>
+            </div>
+
+            <div class="reg-row">
+                <span class="reg-name">R2</span>
+                <span class="reg-val" id="regR2">00H</span>
+            </div>
+
+            <div class="reg-row">
+                <span class="reg-name">R3</span>
+                <span class="reg-val" id="regR3">00H</span>
+            </div>
+
+            <div class="reg-row">
+                <span class="reg-name">R4</span>
+                <span class="reg-val" id="regR4">00H</span>
+            </div>
+
+            <div class="reg-row">
+                <span class="reg-name">R5</span>
+                <span class="reg-val" id="regR5">00H</span>
+            </div>
+
+            <div class="reg-row">
+                <span class="reg-name">R6</span>
+                <span class="reg-val" id="regR6">00H</span>
+            </div>
+
+            <div class="reg-row">
+                <span class="reg-name">R7</span>
+                <span class="reg-val" id="regR7">00H</span>
+            </div>
+
         </div>
     </div>
 
+
+    <!-- MEMORY -->
     <div class="panel-card">
         <div class="panel-title">MEMORY (DATA MEMORY)</div>
 
         <div class="memory-container">
             <table class="data-table">
                 <thead>
-                    <tr><th>ADDRESS</th><th>VALUE</th></tr>
+                    <tr>
+                        <th>ADDRESS</th>
+                        <th>VALUE</th>
+                    </tr>
                 </thead>
+
                 <tbody id="memoryTableBody"></tbody>
             </table>
         </div>
     </div>
 
+
+    <!-- STACK -->
     <div class="panel-card">
         <div class="panel-title">STACK</div>
 
         <div class="week3-info">
-            <span>SP : <b class="week3-value" id="stackSP">07H</b></span>
+            <span>
+                SP :
+                <b class="week3-value" id="stackSP">07H</b>
+            </span>
         </div>
 
         <div class="stack-container">
             <table class="stack-table">
+
                 <thead>
-                    <tr><th>TOP</th><th>VALUE</th></tr>
+                    <tr>
+                        <th>TOP</th>
+                        <th>VALUE</th>
+                    </tr>
                 </thead>
+
                 <tbody id="stackTableBody"></tbody>
+
             </table>
         </div>
 
@@ -666,6 +975,8 @@ HALT</textarea>
         </div>
     </div>
 
+
+    <!-- FIFO QUEUE -->
     <div class="panel-card">
         <div class="panel-title">FIFO QUEUE</div>
 
@@ -677,7 +988,10 @@ HALT</textarea>
         <div class="queue-display" id="queueDisplay"></div>
 
         <div class="week3-info">
-            <span>SIZE : <b class="week3-value" id="queueCount">0/5</b></span>
+            <span>
+                SIZE :
+                <b class="week3-value" id="queueCount">0/5</b>
+            </span>
         </div>
 
         <div class="week3-info">
@@ -688,6 +1002,7 @@ HALT</textarea>
         <div class="week3-message" id="queueOperationStatus">
             Queue ready.
         </div>
+
     </div>
 
 </main>
@@ -725,23 +1040,25 @@ HALT</textarea>
         </div>
     </div>
 
-    <div class="trace-card">
-        <div class="panel-title">FLAGS / STATUS</div>
+   <div class="trace-card">
 
-        <table class="flags-table">
-            <thead>
-                <tr><th>CY</th><th>AC</th><th>OV</th><th>P</th></tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td id="flagCY">0</td>
-                    <td id="flagAC">0</td>
-                    <td id="flagOV">0</td>
-                    <td id="flagP">0</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
+    <div class="panel-title">FLAGS / STATUS</div>
+
+    <table class="flags-table">
+        <thead>
+            <tr><th>CY</th><th>AC</th><th>OV</th><th>P</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td id="flagCY">0</td>
+                <td id="flagAC">0</td>
+                <td id="flagOV">0</td>
+                <td id="flagP">0</td>
+            </tr>
+        </tbody>
+    </table>
+
+</div>
 
 </div>
 
@@ -755,1110 +1072,4 @@ HALT</textarea>
 
     <div class="error-results" id="errorResults">
         <div class="error-empty">
-            No execution errors yet. Click STEP or RUN to check.
-        </div>
-    </div>
-
-    <div class="error-actions">
-        <button type="button" class="error-clear" id="clearErrors">
-            CLEAR ERRORS
-        </button>
-    </div>
-</section>
-
-</div>
-
-<script>
-
-const API_BASE="http://localhost:8080";
-
-let program=[];
-let previousState=null;
-let running=false;
-let stopRequested=false;
-
-/* PROGRAM HISTORY — ALL FOUR PROGRAMS */
-
-const programHistory=[
-
-`MOV A,#10
-MOV B,#20
-
-MOV R0,#1
-MOV R1,#2
-MOV R2,#3
-MOV R3,#4
-MOV R4,#5
-MOV R5,#6
-MOV R6,#7
-MOV R7,#8
-
-ADD A,B
-ADD R0,#10
-ADD R1,R0
-
-SUB B,#5
-SUB R2,#1
-
-ANL R3,#3
-ANL A,#15
-
-INC A
-INC B
-INC R0
-INC R1
-INC R2
-INC R3
-INC R4
-INC R5
-INC R6
-INC R7
-
-HALT`,
-
-`PUSH #15
-PUSH #28
-PUSH #42
-PUSH #57
-PUSH #73
-PUSH #86
-
-POP A
-POP A
-POP A
-POP A
-POP A
-POP A
-
-HALT`,
-
-`ENQUEUE #10
-ENQUEUE #20
-ENQUEUE #30
-ENQUEUE #40
-ENQUEUE #50
-DEQUEUE
-DEQUEUE
-DEQUEUE
-HALT`,
-
-`MOV A,#10
-ADD A,#5
-MULT A,#2
-SUB A
-HELLO
-HALT`
-
-];
-
-let historyIndex=0;
-
-function getCategory(op){
-    op=op.toUpperCase();
-
-    if(op==="MOV"||op==="MOVC")return "Data Transfer";
-    if(op==="ADD"||op==="SUB")return "Arithmetic";
-    if(op==="ANL")return "Logical";
-    if(op==="INC")return "Increment";
-    if(op==="SJMP")return "Control Flow";
-    if(op==="PUSH"||op==="POP")return "Stack";
-    if(op==="ENQUEUE"||op==="DEQUEUE")return "FIFO Queue";
-    if(op==="HALT")return "Termination";
-
-    return "Other";
-}
-
-function formatHex(v){
-    return Number(v).toString(16).toUpperCase().padStart(2,"0")+"H";
-}
-
-function readProgram(){
-    program=document.getElementById("programInput").value
-        .split("\n")
-        .map(x=>x.trim())
-        .filter(x=>x);
-
-    renderProgram();
-}
-
-
-function glowCPU() {
-    const panel = document.querySelector(".current-instr-card");
-
-    if (!panel) return;
-
-    panel.classList.remove("cpu-glow");
-
-    // Restart animation on every STEP
-    void panel.offsetWidth;
-
-    panel.classList.add("cpu-glow");
-}
-
-
-/* HISTORY — NO ERROR CHECK WHILE SWITCHING */
-
-document.getElementById("programInput").addEventListener("keydown",function(e){
-
-    if(e.key==="ArrowUp"){
-        e.preventDefault();
-
-        if(historyIndex<programHistory.length-1){
-            historyIndex++;
-            this.value=programHistory[historyIndex];
-        }
-    }
-
-    if(e.key==="ArrowDown"){
-        e.preventDefault();
-
-        if(historyIndex>0){
-            historyIndex--;
-            this.value=programHistory[historyIndex];
-        }
-    }
-});
-
-function renderProgram(){
-    const table=document.getElementById("programTableBody");
-    table.innerHTML="";
-
-    program.forEach((instruction,i)=>{
-        const row=document.createElement("tr");
-        row.id="programRow"+i;
-        row.onclick=()=>selectInstruction(i);
-
-        row.innerHTML=`
-            <td class="pointer-cell"></td>
-            <td class="addr-cell">${formatHex(i)}</td>
-            <td>${instruction}</td>
-            <td class="category-cell">${getCategory(instruction.split(/\s+/)[0])}</td>
-        `;
-
-        table.appendChild(row);
-    });
-}
-
-function selectInstruction(i){
-    document.querySelectorAll("#programTableBody tr").forEach(r=>{
-        r.classList.remove("active-row");
-        r.querySelector(".pointer-cell").textContent="";
-    });
-
-    const row=document.getElementById("programRow"+i);
-
-    if(row){
-        row.classList.add("active-row");
-        row.querySelector(".pointer-cell").textContent="▶";
-    }
-
-    if(program[i]){
-        document.getElementById("curMnemonic").textContent=program[i];
-        document.getElementById("curAddr").textContent="Address : "+formatHex(i);
-    }
-}
-
-/* API */
-
-async function readApiState(response){
-    const data=await response.json();
-
-    if(!response.ok || data.ok===false){
-        throw new Error(data.error || "Request failed");
-    }
-
-    return data.state ?? data;
-}
-
-async function getState(){
-    const response=await fetch(API_BASE+"/api/state");
-    return await readApiState(response);
-}
-
-/* CPU DISPLAY */
-
-function updateFlagColor(id,a){
-    document.getElementById(id)
-        .classList.toggle("flag-active",!!a);
-}
-
-function updateCPUDisplay(s){
-    document.getElementById("regPC").textContent=formatHex(s.programCounter);
-    document.getElementById("regSP").textContent=formatHex(s.stackPointer);
-    document.getElementById("regA").textContent=formatHex(s.accumulator);
-    document.getElementById("regB").textContent=formatHex(s.bRegister);
-
-    for(let i=0;i<8;i++){
-        document.getElementById("regR"+i).textContent=formatHex(s.registers[i]);
-    }
-
-    ["CY","AC","OV","P"].forEach(f=>{
-        document.getElementById("flag"+f).textContent=s[f]?"1":"0";
-        updateFlagColor("flag"+f,s[f]);
-    });
-
-    if(program.length && s.programCounter<program.length){
-        selectInstruction(s.programCounter);
-    }
-
-    
-if(s.memory){
-    const t=document.getElementById("memoryTableBody");
-    t.innerHTML="";
-
-    s.memory.forEach((v,i)=>{
-        t.innerHTML+=`
-            <tr>
-                <td>${i.toString(16).toUpperCase().padStart(2,"0")}H</td>
-                <td>${formatHex(v)}</td>
-            </tr>`;
-    });
-
-    // Restore green highlights after updating memory
-    applyMemoryHighlights();
-}
-
-}
-
-/* PROGRAM ERROR VALIDATION */
-
-const supportedOpcodes=new Set([
-    "MOV","MOVC","ADD","SUB","ANL","INC",
-    "SJMP","HALT","PUSH","POP","ENQUEUE","DEQUEUE"
-]);
-
-let currentProgramErrors=[];
-
-function validateProgramLines(){
-
-    const lines=document.getElementById("programInput").value.split(/\r?\n/);
-    const errors=[];
-
-    const activeLines=lines
-        .map((text,index)=>({
-            text:text.trim(),
-            number:index+1
-        }))
-        .filter(item=>item.text.length>0);
-
-    activeLines.forEach(({text,number})=>{
-
-        const parts=text.match(/^([A-Za-z]+)(?:\s+(.*))?$/);
-
-        if(!parts){
-            errors.push({
-                number,
-                text,
-                message:"Invalid instruction format."
-            });
-            return;
-        }
-
-        const op=parts[1].toUpperCase();
-        const args=(parts[2]||"").trim();
-
-        if(!supportedOpcodes.has(op)){
-            errors.push({
-                number,
-                text,
-                message:`Unsupported instruction: ${op}.`
-            });
-            return;
-        }
-
-        if(["HALT","DEQUEUE"].includes(op) && args){
-
-            errors.push({
-                number,
-                text,
-                message:`${op} does not take an operand.`
-                    });
-        }else if(op==="MOV"){
-
-            if(!/^(A|B|R[0-7])\s*,\s*#(?:\d+|0x[\da-f]+|[\da-f]+H)$/i.test(args)){
-                errors.push({
-                    number,
-                    text,
-                    message:"MOV requires a valid destination and immediate value, e.g. MOV R0,#10."
-                });
-            }
-
-        }else if(op==="MOVC"){
-
-    if(!/^A\s*,\s*\d+$/i.test(args)){
-        errors.push({
-            number,
-            text,
-            message:"MOVC requires A and a code-memory address, e.g. MOVC A,10."
-        });
-    }
-
-        }else if(["ADD","SUB","ANL"].includes(op)){
-
-    if(!/^(A|B|R[0-7])\s*,\s*(?:#(?:\d+|0x[\da-f]+|[\da-f]+H)|A|B|R[0-7])$/i.test(args)){
-        errors.push({
-            number,
-            text,
-            message:`${op} requires valid registers/values, e.g. ${op} R0,#10.`
-        });
-    }
-
-}else if(op==="INC" && !/^(A|B|R[0-7])$/i.test(args)){
-
-            errors.push({
-                number,
-                text,
-                message:"INC requires a register, e.g. INC A."
-            });
-
-        }else if(op==="SJMP"){
-
-            if(!/^\d+$/.test(args)){
-                errors.push({
-                    number,
-                    text,
-                    message:"SJMP requires a numeric target, e.g. SJMP 7."
-                });
-
-            }else if(Number(args)>=activeLines.length){
-                errors.push({
-                    number,
-                    text,
-                    message:`Jump target ${args} is outside the program.`
-                });
-            }
-
-        }else if(["PUSH","ENQUEUE"].includes(op) &&
-            !/^#?(?:\d+|0x[\da-f]+|[\da-f]+H|A|R[0-7])$/i.test(args)){
-
-            errors.push({
-                number,
-                text,
-                message:`${op} requires a value, e.g. ${op} #10.`
-            });
-
-        }else if(op==="POP" && !/^(A|R[0-7])$/i.test(args)){
-
-            errors.push({
-                number,
-                text,
-                message:"POP requires a destination register, e.g. POP A."
-            });
-        }
-    });
-
-    return errors;
-}
-
-/* DISPLAY ERRORS */
-
-function showProgramErrors(errors){
-
-    currentProgramErrors=errors;
-
-    const output=document.getElementById("errorResults");
-    const count=document.getElementById("errorCount");
-
-    count.textContent=errors.length+
-        (errors.length===1?" error":" errors");
-
-    count.style.color=errors.length?"#fda4af":"#86efac";
-
-    output.replaceChildren();
-
-    if(!errors.length){
-        const ok=document.createElement("div");
-        ok.className="error-empty";
-        ok.style.color="#86efac";
-        ok.textContent="No syntax errors detected.";
-        output.appendChild(ok);
-        return;
-    }
-
-    errors.forEach(error=>{
-
-        const item=document.createElement("div");
-        item.className="error-item";
-
-        const label=document.createElement("strong");
-        label.textContent=`Line ${error.number}: ${error.message}`;
-
-        const code=document.createElement("span");
-        code.className="error-code";
-        code.textContent=error.text;
-
-        item.append(label,code);
-        output.appendChild(item);
-    });
-}
-
-function checkProgramErrors(){
-    const errors=validateProgramLines();
-    showProgramErrors(errors);
-    return errors;
-}
-
-/* CLEAR ERRORS */
-
-document.getElementById("clearErrors").addEventListener("click",()=>{
-
-    currentProgramErrors=[];
-
-    document.getElementById("errorCount").textContent="0 errors";
-    document.getElementById("errorCount").style.color="#94a3b8";
-
-    document.getElementById("errorResults").innerHTML=
-        '<div class="error-empty">No execution errors yet. Click STEP or RUN to check.</div>';
-});
-
-/* LOAD — NO ERROR CHECK */
-
-async function loadProgram(){
-
-    readProgram();
-
-    if(!program.length){
-        alert("Please enter a program.");
-        return;
-    }
-
-    setStatus("LOADING","#eab308");
-
-    try{
-        const r=await fetch(API_BASE+"/api/load",{
-            method:"POST",
-            headers:{
-                "Content-Type":"text/plain"
-            },
-            body:program.join(";")
-        });
-
-        const s=await readApiState(r);
-        // Clear previous green highlights
-        clearValueHighlights();
-
-
-        await updateQueue();
-        await updateStack();
-
-        previousState=s;
-        updateCPUDisplay(s);
-        selectInstruction(0);
-        clearTrace();
-
-        setStatus("LOADED","#22c55e");
-
-    }catch(e){
-        console.error(e);
-        setStatus("SERVER ERROR","#ef4444");
-
-        alert(
-            "Program could not be loaded.\n\n"+
-            "Check the Java server and program instructions."
-        );
-    }
-}
-
-/* RESET */
-
-async function resetCPU(){
-
-    try{
-        setStatus("RESETTING","#eab308");
-
-        const response=await fetch(API_BASE+"/api/reset",{
-            method:"POST"
-        });
-
-        const s=await readApiState(response);
-
-        // Clear previous green highlights
-        clearValueHighlights();
-
-        previousState=s;
-        updateCPUDisplay(s);
-
-        await updateStack();
-        await updateQueue();
-
-        clearTrace();
-        setStatus("RESET","#22c55e");
-
-    }catch(e){
-        console.error("Reset failed:",e);
-        setStatus("RESET ERROR","#ef4444");
-    }
-}
-
-/* HIGHLIGHT UPDATED REGISTERS AND MEMORY */
-
-const changedMemoryAddresses = new Set();
-
-function clearValueHighlights() {
-
-    // Forget previously changed memory addresses
-    changedMemoryAddresses.clear();
-
-    // Remove green color from registers and memory
-    document.querySelectorAll(".value-glow").forEach(element => {
-        element.classList.remove("value-glow");
-    });
-}
-
-
-function highlightChanges(before, after) {
-
-    if (!before || !after) return;
-
-    // PC, SP, A, B
-    const registerFields = [
-        ["programCounter", "regPC"],
-        ["stackPointer", "regSP"],
-        ["accumulator", "regA"],
-        ["bRegister", "regB"]
-    ];
-
-    registerFields.forEach(([field, id]) => {
-        if (before[field] !== after[field]) {
-            document.getElementById(id)
-                .classList.add("value-glow");
-        }
-    });
-
-    // R0 to R7
-    for (let i = 0; i < 8; i++) {
-        if (before.registers[i] !== after.registers[i]) {
-            document.getElementById("regR" + i)
-                .classList.add("value-glow");
-        }
-    }
-
-    // Memory
-    if (before.memory && after.memory) {
-
-        for (let i = 0; i < Math.min(
-            before.memory.length,
-            after.memory.length
-        ); i++) {
-
-            if (before.memory[i] !== after.memory[i]) {
-                changedMemoryAddresses.add(i);
-            }
-        }
-
-        applyMemoryHighlights();
-    }
-}
-
-function applyMemoryHighlights() {
-
-    const rows = document.querySelectorAll(
-        "#memoryTableBody tr"
-    );
-
-    changedMemoryAddresses.forEach(address => {
-
-        if (rows[address] && rows[address].cells[1]) {
-            rows[address].cells[1]
-                .classList.add("value-glow");
-        }
-    });
-}
-
-
-/* STEP — CHECK ERRORS ONLY HERE */
-
-async function stepCPU(){
-
-    if(running)return;
-
-    if(checkProgramErrors().length){
-        setStatus("PROGRAM ERROR","#ef4444");
-        return;
-    }
-
-    try{
-        const before=await getState();
-
-        if(before.halted){
-            setStatus("HALTED","#ef4444");
-            return;
-        }
-
-        const pc=before.programCounter;
-        const instruction=program[pc]||"Unknown";
-
-        const r=await fetch(API_BASE+"/api/step",{
-            method:"POST"
-        });
-
-        const after=await readApiState(r);
-
-        
-        
-        previousState=after;
-        updateCPUDisplay(after);
-        animateExecutionTrace();
-        glowCPU();
-        highlightChanges(before, after);
-
-
-        await updateStack();
-        await updateQueue();
-
-        showTrace(instruction,before,after);
-
-        setStatus(
-            after.halted?"HALTED":"STEPPED",
-            after.halted?"#ef4444":"#eab308"
-        );
-
-    }catch(e){
-        console.error(e);
-        setStatus("SERVER ERROR","#ef4444");
-    }
-}
-
-/* FETCH → DECODE → EXECUTE ANIMATION */
-
-function animateExecutionTrace() {
-    const stages = [
-        "fetchDetail",
-        "decodeDetail",
-        "executeDetail"
-    ];
-
-    stages.forEach((id, index) => {
-        setTimeout(() => {
-            const element = document.getElementById(id);
-
-            if (!element) return;
-
-            element.classList.remove("trace-animate");
-            void element.offsetWidth;
-            element.classList.add("trace-animate");
-
-        }, index * 300);
-    });
-}
-
-
-/* STEP USED BY RUN */
-
-async function stepCPUForRun(){
-
-    const before=await getState();
-
-    if(before.halted)return;
-
-    const pc=before.programCounter;
-    const instruction=program[pc]||"Unknown";
-
-    const r=await fetch(API_BASE+"/api/step",{
-        method:"POST"
-    });
-
-    const after=await readApiState(r);
-
-   previousState=after;
-    updateCPUDisplay(after);
-    animateExecutionTrace();
-    glowCPU();
-    highlightChanges(before, after);
-
-    await updateStack();
-    await updateQueue();
-
-    showTrace(instruction,before,after);
-    selectInstruction(after.programCounter);
-}
-
-/* RUN — CHECK ERRORS ONLY HERE */
-
-async function runCPU(){
-
-    if(running)return;
-
-    if(checkProgramErrors().length){
-        setStatus("PROGRAM ERROR","#ef4444");
-        return;
-    }
-
-    running=true;
-    stopRequested=false;
-
-    setStatus("RUNNING","#3b82f6");
-    disableButtons(true);
-
-    try{
-        while(!stopRequested){
-
-            const s=await getState();
-
-            if(s.halted)break;
-
-            await stepCPUForRun();
-            await sleep(400);
-        }
-
-        if(stopRequested){
-            setStatus("STOPPED","#eab308");
-        }else{
-            setStatus("TERMINATED","#ef4444");
-        }
-
-    }catch(e){
-        console.error(e);
-        setStatus("SERVER ERROR","#ef4444");
-    }
-
-    disableButtons(false);
-    running=false;
-    stopRequested=false;
-}
-
-/* EXECUTION TRACE */
-function addChange(container, target, before, after){
-
-    const row = document.createElement("div");
-    row.className = "diff-row";
-
-    row.innerHTML = `
-        <span class="diff-target">${target}</span>
-        <span class="diff-change">
-            ${before}
-            <span class="arrow">→</span>
-            ${after}
-        </span>
-    `;
-
-    container.appendChild(row);
-}
-function showTrace(instruction, before, after){
-
-    const parts = instruction.trim().split(/\s+/);
-    const opcode = parts[0].toUpperCase();
-    const operands = parts.slice(1).join(" ");
-
-    // FETCH
-    document.getElementById("fetchDetail").textContent =
-        "✓ " + instruction;
-
-    // DECODE
-    let decodeText = "Opcode: " + opcode;
-
-    if(operands){
-        const ops = operands.split(",");
-
-        if(ops.length === 2){
-            decodeText +=
-                " | Dest: " + ops[0].trim() +
-                " | Source: " + ops[1].trim();
-        }else{
-            decodeText += " | Operand: " + operands;
-        }
-    }
-
-    document.getElementById("decodeDetail").textContent =
-        "✓ " + decodeText;
-
-
-    // EXECUTE
-    let changes = [];
-
-    if(before.accumulator !== after.accumulator){
-        changes.push(
-            "A: " +
-            formatHex(before.accumulator) +
-            " → " +
-            formatHex(after.accumulator)
-        );
-    }
-
-    if(before.bRegister !== after.bRegister){
-        changes.push(
-            "B: " +
-            formatHex(before.bRegister) +
-            " → " +
-            formatHex(after.bRegister)
-        );
-    }
-
-    for(let i=0;i<8;i++){
-        if(before.registers[i] !== after.registers[i]){
-            changes.push(
-                "R" + i + ": " +
-                formatHex(before.registers[i]) +
-                " → " +
-                formatHex(after.registers[i])
-            );
-        }
-    }
-
-    if(before.stackPointer !== after.stackPointer){
-        changes.push(
-            "SP: " +
-            formatHex(before.stackPointer) +
-            " → " +
-            formatHex(after.stackPointer)
-        );
-    }
-
-    if(before.CY !== after.CY){
-        changes.push(
-            "CY: " +
-            (before.CY ? "1" : "0") +
-            " → " +
-            (after.CY ? "1" : "0")
-        );
-    }
-
-    if(before.OV !== after.OV){
-        changes.push(
-            "OV: " +
-            (before.OV ? "1" : "0") +
-            " → " +
-            (after.OV ? "1" : "0")
-        );
-    }
-
-    if(changes.length === 0){
-        changes.push("Instruction completed");
-    }
-
-    document.getElementById("executeDetail").textContent =
-        "✓ " + changes.join(" | ");
-
-
-    // KEEP YOUR EXISTING RESULT (CHANGES) PANEL
-    const c = document.getElementById("diffContainer");
-    c.innerHTML = "";
-
-    addChange(c,"Instruction",instruction,instruction);
-
-    if(before.accumulator !== after.accumulator){
-        addChange(
-            c,
-            "A",
-            formatHex(before.accumulator),
-            formatHex(after.accumulator)
-        );
-    }
-
-    if(before.bRegister !== after.bRegister){
-        addChange(
-            c,
-            "B",
-            formatHex(before.bRegister),
-            formatHex(after.bRegister)
-        );
-    }
-
-    if(before.programCounter !== after.programCounter){
-        addChange(
-            c,
-            "PC",
-            formatHex(before.programCounter),
-            formatHex(after.programCounter)
-        );
-    }
-
-    for(let i=0;i<8;i++){
-        if(before.registers[i] !== after.registers[i]){
-            addChange(
-                c,
-                "R"+i,
-                formatHex(before.registers[i]),
-                formatHex(after.registers[i])
-            );
-        }
-    }
-
-    if(before.CY !== after.CY){
-        addChange(
-            c,
-            "CY",
-            before.CY ? "1" : "0",
-            after.CY ? "1" : "0"
-        );
-    }
-
-    if(before.OV !== after.OV){
-        addChange(
-            c,
-            "OV",
-            before.OV ? "1" : "0",
-            after.OV ? "1" : "0"
-        );
-    }
-}
-function clearTrace(){
-
-    document.getElementById("fetchDetail").textContent = "○";
-    document.getElementById("decodeDetail").textContent = "○";
-    document.getElementById("executeDetail").textContent = "○";
-
-    document.getElementById("diffContainer").innerHTML =
-        '<div class="message">No instruction executed yet.</div>';
-}
-
-/* STATUS */
-
-function setStatus(text,color){
-    const e=document.getElementById("statusDisplay");
-    e.textContent=text;
-    e.style.color=color;
-}
-
-function disableButtons(d){
-    ["btnLoad","btnReset","btnStep","btnRun"].forEach(id=>{
-        document.getElementById(id).disabled=d;
-    });
-}
-
-function sleep(ms){
-    return new Promise(r=>setTimeout(r,ms));
-}
-
-/* STACK */
-
-async function updateStack(){
-
-    try{
-        const s=await getState();
-
-        const table=document.getElementById("stackTableBody");
-        const status=document.getElementById("stackStatus");
-
-        table.innerHTML="";
-
-        const sp=s.stackPointer;
-
-        document.getElementById("stackSP").textContent=formatHex(sp);
-
-        if(sp===7){
-
-            table.innerHTML=`
-                <tr>
-                    <td colspan="2" style="color:#94a3b8;text-align:center;padding:15px;">
-                        Stack is empty
-                    </td>
-                </tr>`;
-
-            status.textContent="Stack is empty.";
-
-        }else{
-
-            for(let i=sp;i>7;i--){
-                const value=s.memory[i]??0;
-
-                table.innerHTML+=`
-                    <tr>
-                        <td>${formatHex(i)}</td>
-                        <td>${formatHex(value)}</td>
-                    </tr>`;
-            }
-
-            status.textContent=sp===0xFF?"Stack is full.":"Stack ready.";
-        }
-
-    }catch(e){
-        console.error("Stack update failed:",e);
-    }
-}
-
-/* FIFO QUEUE */
-
-const QUEUE_LIMIT=5;
-
-async function updateQueue(){
-
-    try{
-        const s=await getState();
-
-        const d=document.getElementById("queueDisplay");
-        const status=document.getElementById("queueOperationStatus");
-
-        d.innerHTML="";
-
-        if(s.queueSize===0){
-
-            d.innerHTML=`
-                <div style="width:100%;text-align:center;padding:12px;color:#94a3b8;">
-                    Queue is empty
-                </div>`;
-
-            status.textContent="Queue is empty.";
-
-        }else{
-
-            s.queue.forEach(v=>{
-                d.innerHTML+=`<div class="queue-item">${formatHex(v)}</div>`;
-            });
-
-            status.textContent=s.queueSize===QUEUE_LIMIT
-                ?"Queue is full.":"Queue ready.";
-        }
-
-        document.getElementById("queueCount").textContent=
-            s.queueSize+"/"+QUEUE_LIMIT;
-
-        document.getElementById("queueStatus").textContent=
-            s.queueSize===QUEUE_LIMIT?"FULL":s.queueSize?"READY":"EMPTY";
-
-    }catch(e){
-        console.error("Queue update failed:",e);
-    }
-}
-
-/* BUTTON EVENTS */
-
-document.getElementById("btnLoad").addEventListener("click",()=>{
-    loadProgram();
-});
-
-document.getElementById("btnReset").addEventListener("click",()=>{
-    resetCPU();
-});
-
-document.getElementById("btnStep").addEventListener("click",()=>{
-    stepCPU().catch(error=>console.error("STEP failed:",error));
-});
-
-document.getElementById("btnRun").addEventListener("click",()=>{
-    runCPU();
-});
-
-document.getElementById("btnStop").addEventListener("click",()=>{
-    stopRequested=true;
-});
-
-/* INITIALIZE — NO ERROR CHECK */
-
-async function initializeSimulator(){
-
-    try{
-        readProgram();
-
-        const s=await getState();
-        previousState=s;
-
-        updateCPUDisplay(s);
-        await updateStack();
-        await updateQueue();
-
-        if(!s.halted){
-            selectInstruction(s.programCounter);
-        }
-
-    }catch(e){
-        console.error("Initialization failed:",e);
-        setStatus("SERVER OFFLINE","#ef4444");
-    }
-}
-
-initializeSimulator();
-
-</script>
-</body>
-</html>
+            No execution errors yet. 
