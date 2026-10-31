@@ -16,15 +16,14 @@ public class Core implements Runnable {
     // CPU belongs only to the Core
     private final CPU cpu;
 
-    // Queue for receiving commands from UI
+    // Internal queue for commands received from the UI socket
     private final BlockingQueue<String> commandQueue;
 
-    // Queue for sending responses back to UI
+    // Internal queue for Core responses before sending them to the UI socket
     private final BlockingQueue<String> responseQueue;
 
-    // Queue for sending logs to Logger
+    // Internal queue for log messages before sending them to the Logger process
     private final BlockingQueue<String> logQueue;
-
     // Controls Core thread
     private volatile boolean running = true;
 
@@ -50,8 +49,6 @@ public class Core implements Runnable {
     @Override
     public void run() {
 
-        System.out.println("Core started.");
-
         while (running) {
 
             try {
@@ -59,9 +56,12 @@ public class Core implements Runnable {
                 // Wait for a command from UI
                 String command = commandQueue.take();
 
-                System.out.println("[CORE RECEIVED] " + command);
+             System.out.println("[UI -> CORE] " + command);
 
-                if (command == null || command.isBlank()) {
+                if (!command.trim().equalsIgnoreCase("STATE")) {
+                    log("[UI] " + command);
+                }
+                                if (command == null || command.isBlank()) {
                     continue;
                 }
 
@@ -103,7 +103,7 @@ public class Core implements Runnable {
     }
 
 
-    // Handle commands received through BlockingQueue
+  // Handle commands received from the UI through the Core's internal command queue
     private String handle(String line) {
 
         line = line.replaceFirst("\\|", " ");
@@ -207,7 +207,7 @@ public class Core implements Runnable {
 
                 cpu.reset();
 
-                log("RESET");
+                log("[CORE] CPU RESET");
 
                 return "";
 
@@ -222,8 +222,8 @@ public class Core implements Runnable {
 
                 cpu.loadProgram(program);
 
-                log("LOAD " + program.length
-                        + " instructions");
+                log("[CORE] PROGRAM LOADED: "
+        +       program.length + " instructions");
 
                 return "\"loaded\":" + program.length;
             }
@@ -232,23 +232,27 @@ public class Core implements Runnable {
             // Execute one instruction
             case "STEP": {
 
-                int pcBefore =
-                        cpu.getProgramCounter();
+            int pcBefore = cpu.getProgramCounter();
 
-                cpu.step();
+            log("[CORE] STEP started at PC=" + pcBefore);
 
-                log("STEP pc=" + pcBefore
-                        + "->" + cpu.getProgramCounter()
-                        + " A=" + cpu.getAccumulator()
-                        + " B=" + cpu.getBRegister()
-                        + (cpu.isHalted()
-                            ? " HALTED"
-                            : ""));
+            cpu.step();
 
-                return "";
+            log("[CORE] STEP completed");
+            log("[CORE] PC: " + pcBefore
+                    + " -> " + cpu.getProgramCounter());
+
+            log("[CORE] CPU STATE: A="
+                    + cpu.getAccumulator()
+                    + " B=" + cpu.getBRegister()
+                    + " SP=" + cpu.getStackPointer());
+
+            if (cpu.isHalted()) {
+                log("[CORE] CPU HALTED");
             }
 
-
+            return "";
+        }
             // Execute program
             case "RUN": {
 
@@ -348,7 +352,7 @@ public class Core implements Runnable {
     }
 
 
-    // Send message to Logger through BlockingQueue
+   // Place log message in the internal queue for the log-sender thread
     private void log(String message) {
 
         try {
@@ -586,8 +590,7 @@ logSender.start();
 
     try (ServerSocket server = new ServerSocket(5001)) {
 
-        System.out.println("CORE PROCESS STARTED");
-        System.out.println("Listening on port 5001");
+        System.out.println("[CORE] Started - Port 5001");
 
         while (true) {
 
