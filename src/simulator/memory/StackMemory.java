@@ -1,5 +1,4 @@
 package simulator;
-
 public class StackMemory {
 
     private DataMemory memory;
@@ -35,10 +34,11 @@ public class StackMemory {
         return sp;
     }
     public void reset() {
-    sp = 0x07;
-}
-}
-   public void displayStack() {
+        sp = 0x07;
+    }
+
+    // Week 3: Display Stack
+    public void displayStack() {
 
         System.out.println("----- STACK -----");
 
