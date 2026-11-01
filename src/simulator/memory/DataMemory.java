@@ -19,4 +19,9 @@ public class DataMemory {
         checkAddress(address);
         return memory[address];
     }
+    public void reset() {
+    for (int i = 0; i < memory.length; i++) {
+        memory[i] = 0;
+    }
+}
 }
