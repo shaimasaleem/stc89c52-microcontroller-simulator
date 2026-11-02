@@ -23,5 +23,3 @@ public class DataMemory {
     for (int i = 0; i < memory.length; i++) {
         memory[i] = 0;
     }
-}
-}
