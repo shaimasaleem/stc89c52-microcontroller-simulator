@@ -58,4 +58,3 @@ public class StackMemory {
                     Integer.toHexString(memory.read(i)).toUpperCase());
         }
     }
-}
