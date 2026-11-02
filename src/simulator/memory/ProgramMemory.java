@@ -35,3 +35,4 @@ public class ProgramMemory {
         instructions.add(instruction);
     }
 }
+}
