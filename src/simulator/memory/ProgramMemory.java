@@ -34,4 +34,3 @@ public class ProgramMemory {
     for (Instruction instruction : program) {
         instructions.add(instruction);
     }
-}
