@@ -31,8 +31,17 @@ The simulator supports Assembly-based operations and displays the updated CPU, M
 
 ### 3. Technologies Used
 
-<img width="732" height="496" alt="image" src="https://github.com/user-attachments/assets/fd4932c4-0095-46b3-bfb8-783ee473afe1" />
+| Component | Technology |
+|---|---|
+| Programming Language | Java |
+| Microcontroller | STC89C52 |
+| Frontend | HTML, CSS, JavaScript |
+| Backend | Java HTTP Server |
+| IDE | Visual Studio Code |
+| Platform | Windows |
+| Version Control | Git and GitHub |
 
+---
 
 ### 4. Week 3 Implementation
 
@@ -98,7 +107,17 @@ Stack and Queue operations are performed through Assembly instructions entered i
 ---
 
 ### 5. Supported Instructions
-<img width="867" height="597" alt="image" src="https://github.com/user-attachments/assets/8a8d7b36-425e-438b-9fe5-b2bc622d3ee9" />
+
+| Category | Instructions |
+|---|---|
+| Data Transfer | MOV, MOVC |
+| Arithmetic | ADD, SUB |
+| Logical | ANL |
+| Increment | INC |
+| Control Flow | SJMP |
+| Termination | HALT |
+| Stack Operations | PUSH, POP |
+| Queue Operations | ENQUEUE, DEQUEUE |
 
 *HALT, ENQUEUE and DEQUEUE are simulator-supported operations used for educational purposes.*
 
@@ -108,8 +127,13 @@ Stack and Queue operations are performed through Assembly instructions entered i
 
 #### Stack Test Program
 
-<img width="142" height="185" alt="image" src="https://github.com/user-attachments/assets/b6b9f5a1-d7f5-4a08-8efc-5c19d39fdf45" />
-
+```asm
+PUSH #10
+PUSH #20
+PUSH #30
+POP A
+HALT
+```
 
 Expected result:
 
@@ -120,13 +144,24 @@ Expected result:
 
 #### FIFO Queue Test Program
 
-<img width="297" height="341" alt="image" src="https://github.com/user-attachments/assets/06a56bb3-5af1-4cb7-b7e6-8bd5cafa8210" />
-
+```asm
+ENQUEUE #10
+ENQUEUE #20
+ENQUEUE #30
+DEQUEUE
+ENQUEUE #40
+ENQUEUE #50
+DEQUEUE
+ENQUEUE #60
+DEQUEUE
+HALT
+```
 
 Expected final queue:
 
-<img width="310" height="42" alt="image" src="https://github.com/user-attachments/assets/d0f4d763-1ce3-4787-8cfa-0cc4c6ff26b6" />
-
+```text
+28H 32H 3CH
+```
 
 This program verifies FIFO ordering through multiple ENQUEUE and DEQUEUE operations.
 
@@ -137,8 +172,14 @@ This program verifies FIFO ordering through multiple ENQUEUE and DEQUEUE operati
 ### 7. Week 3 Testing
 
 A separate `Week3Test.java` file was created to verify the implemented components.
-<img width="902" height="335" alt="image" src="https://github.com/user-attachments/assets/96f12db1-62b5-46f9-8b18-3db1b4dc8439" />
 
+| Test | Description | Result |
+|---|---|---|
+| Test 1 | Memory Read/Write | PASS |
+| Test 2 | Stack PUSH/POP | PASS |
+| Test 3 | FIFO Queue Operations | PASS |
+| Test 4 | Stack Assembly Execution | PASS* |
+| Test 5 | FIFO Assembly Execution | PASS |
 
 *Test 4 initially reported FAIL because the test expected `30H` instead of `1EH`. The observed accumulator value was correct for the simulator's decimal immediate format. The test assertion was corrected.*
 
@@ -148,7 +189,32 @@ The tests verify memory operations, LIFO behavior, FIFO ordering and Assembly in
 
 ### 8. Project Structure
 
-<img width="495" height="732" alt="image" src="https://github.com/user-attachments/assets/95baaeaf-2f9f-436a-8fe3-a9011dee87e9" />
+```text
+Educational-Microcontroller-Simulator/
+│
+├── src/
+│   └── simulator/
+│       ├── CPU.java
+│       ├── DataMemory.java
+│       ├── StackMemory.java
+│       ├── FIFOQueue.java
+│       ├── Instruction.java
+│       ├── ProgramMemory.java
+│       ├── SimulatorServer.java
+│       └── Main.java
+│
+├── Testing/
+│   └── Week3Test.java
+│
+├── ui/
+│   └── index.html
+│
+├── out/
+│
+└── README.md
+```
+
+---
 
 ### 9. How to Run the Project
 
@@ -156,12 +222,15 @@ The tests verify memory operations, LIFO behavior, FIFO ordering and Assembly in
 
 **Step 2: Compile the Java source files.**
 
-<img width="416" height="55" alt="image" src="https://github.com/user-attachments/assets/fec97420-7e9d-4c02-9dc2-881256e359ae" />
-
+```powershell
+javac src\simulator\*.java -d out
+```
 
 **Step 3: Start the simulator server.**
 
-<img width="590" height="47" alt="image" src="https://github.com/user-attachments/assets/427b8f94-4b06-4d0c-9643-ca300e6ec4ce" />
+```powershell
+java -cp out simulator.SimulatorServer
+```
 
 **Step 4: Open `ui/index.html` in a web browser.**
 
@@ -171,15 +240,28 @@ Use the Assembly editor and simulator controls to execute instructions and obser
 
 Compile:
 
-<img width="722" height="55" alt="image" src="https://github.com/user-attachments/assets/eec444f9-d36b-4f7a-b4b5-ef562ae7c7a1" />
-
+```powershell
+javac src\simulator\*.java Testing\Week3Test.java -d out
+```
 
 Run:
 
-<img width="377" height="50" alt="image" src="https://github.com/user-attachments/assets/c2ea5254-f10a-44ee-adcd-d2a39f026a3a" />
-
+```powershell
+java -cp out simulator.Week3Test
+```
 
 The terminal displays the result of each test.
+
+---
+
+### 10. Team Contributions
+
+| Team Member | Responsibility |
+|---|---|
+| Shaima Saleem | CPU Integration and Overall Integration |
+| Niranjana S | Data Memory and Stack Implementation |
+| Amra Fathima | FIFO Queue Implementation |
+| Thejes Santhosh | User Interface, Testing and Documentation |
 
 ---
 
