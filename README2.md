@@ -40,8 +40,16 @@ Eight instructions are included in the prototype.
 
 ### Sample Program
 
-<img width="248" height="275" alt="image" src="https://github.com/user-attachments/assets/dffa48dc-8a40-4f19-a89d-e6c33b22cb31" />
-
+```asm
+MOV A,#10
+MOVC A,10
+ADD A,#5
+SUB A,#2
+ANL A,#3
+INC A
+SJMP 7
+HALT
+```
 
 ### Project Files
 
@@ -59,17 +67,21 @@ Eight instructions are included in the prototype.
 
 Compile the Java files from the project root:
 
-<img width="592" height="47" alt="image" src="https://github.com/user-attachments/assets/4f752222-0541-4469-910e-a2c6038c5490" />
+```powershell
+javac -d . src\simulator\*.java
+```
 
 Run the console simulator:
 
-<img width="346" height="56" alt="image" src="https://github.com/user-attachments/assets/4351f70c-6927-4b54-8405-c56b3f88ccae" />
-
+```powershell
+java simulator.Main
+```
 
 Or start the backend server for the UI:
 
-<img width="412" height="46" alt="image" src="https://github.com/user-attachments/assets/570135eb-03a1-4237-a16f-be3fadc3ce1c" />
-
+```powershell
+java simulator.SimulatorServer
+```
 
 Server address: `http://localhost:8080`
 
