@@ -57,9 +57,9 @@ public class CPU {
         int value;
 
         // Find source value
-        if (source.startsWith("#")) {
-            value = Integer.parseInt(source.substring(1));
-        }
+       if (source.startsWith("#")) {
+    value = getOperandValue(source);
+}
         else if (source.equals("A")) {
             value = accumulator;
         }
@@ -180,6 +180,96 @@ public class CPU {
         System.out.println("ERROR: Invalid ANL instruction.");
     }
     break;
+    case "XRL":
+    try {
+        String destination = operands[0].trim().toUpperCase();
+        String source = operands[1].trim().toUpperCase();
+
+        int destValue = getRegisterValue(destination);
+        int sourceValue = getOperandValue(source);
+
+        int result = destValue ^ sourceValue;
+
+        setRegisterValue(destination, result & 0xFF);
+
+    } catch (Exception e) {
+        System.out.println("ERROR: Invalid XRL instruction.");
+    }
+    break;
+    case "RLC":
+    try {
+        String destination = operands[0].trim().toUpperCase();
+
+        if (!destination.equals("A")) {
+            System.out.println("ERROR: RLC supports only accumulator A.");
+            break;
+        }
+
+        int oldCarry = CY ? 1 : 0;
+
+        // Save bit 7 of A into Carry
+        boolean newCarry = (accumulator & 0x80) != 0;
+
+        // Shift A left and place old Carry into bit 0
+        accumulator = ((accumulator << 1) | oldCarry) & 0xFF;
+
+        CY = newCarry;
+
+        updateParity();
+
+    } catch (Exception e) {
+        System.out.println("ERROR: Invalid RLC instruction.");
+    }
+    break;
+    case "CLR":
+    try {
+        String destination = operands[0].trim().toUpperCase();
+
+        if (destination.equals("C")) {
+            CY = false;
+        } else {
+            System.out.println("ERROR: CLR currently supports only Carry C.");
+        }
+
+    } catch (Exception e) {
+        System.out.println("ERROR: Invalid CLR instruction.");
+    }
+    break;
+    case "JNC":
+    try {
+        int target = Integer.parseInt(operands[0]);
+
+        if (!CY) {
+            programCounter = target;
+        } else {
+            programCounter++;
+        }
+
+    } catch (Exception e) {
+        System.out.println("ERROR: Invalid JNC instruction.");
+        programCounter++;
+    }
+    break;
+    case "DJNZ":
+    try {
+        String register = operands[0].trim().toUpperCase();
+        int target = Integer.parseInt(operands[1].trim());
+
+        int value = getRegisterValue(register);
+        value = (value - 1) & 0xFF;
+        setRegisterValue(register, value);
+
+        if (value != 0) {
+            programCounter = target;
+        } else {
+            programCounter++;
+        }
+
+    } catch (Exception e) {
+        System.out.println("ERROR: Invalid DJNZ instruction.");
+        programCounter++;
+    }
+    break;
         case "INC":
     try {
         String destination = operands[0].trim().toUpperCase();
@@ -235,6 +325,7 @@ public class CPU {
             System.out.println("Invalid instruction " + operation);
             break;
     }
+    
 }
 
     private int getRegisterValue(String register) {
@@ -266,7 +357,17 @@ private int getOperandValue(String operand) {
     operand = operand.trim().toUpperCase();
 
     if (operand.startsWith("#")) {
-        return Integer.parseInt(operand.substring(1));
+
+        String value = operand.substring(1);
+
+        // Hexadecimal value, for example #0A5H or #80H
+        if (value.endsWith("H")) {
+            value = value.substring(0, value.length() - 1);
+            return Integer.parseInt(value, 16);
+        }
+
+        // Decimal value, for example #10
+        return Integer.parseInt(value);
     }
 
     return getRegisterValue(operand);
@@ -357,8 +458,9 @@ private void setRegisterValue(String register, int value) {
     execute(instruction);
 
     System.out.println("EXECUTE: " + instruction.getOperation());
-
-   if (!instruction.getOperation().equals("SJMP")
+if (!instruction.getOperation().equals("SJMP")
+        && !instruction.getOperation().equals("JNC")
+        && !instruction.getOperation().equals("DJNZ")
         && !instruction.getOperation().equals("HALT")) {
     programCounter++;
 }
