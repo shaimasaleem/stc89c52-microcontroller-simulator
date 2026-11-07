@@ -365,59 +365,129 @@ public class Core implements Runnable {
         }
     }
 
+// Convert program text into Instruction objects
+// Also supports assembly labels such as CRC_LOOP:
+static Instruction[] parseProgram(String text) {
 
-    // Convert program text into Instruction objects
-    static Instruction[] parseProgram(String text) {
+    List<Instruction> list = new ArrayList<>();
+    Map<String, Integer> labels = new HashMap<>();
 
-        List<Instruction> list =
-                new ArrayList<>();
+    // Convert new lines into semicolon-separated instructions
+    text = text.replace("\r\n", ";")
+               .replace("\n", ";");
 
+    String[] lines = text.split(";");
 
-        for (String raw : text.split(";")) {
+    // FIRST PASS: Find labels
+    int instructionIndex = 0;
 
-            String instructionText =
-                    raw.trim();
+    for (String raw : lines) {
 
+        String line = raw.trim();
 
-            if (instructionText.isEmpty()) {
-                continue;
-            }
+        if (line.isEmpty()) {
+            continue;
+        }
 
+        // Ignore comments
+        if (line.startsWith(";")) {
+            continue;
+        }
 
-            String[] parts =
-                    instructionText.split("\\s+", 2);
+        // Ignore assembler directives
+        if (line.toUpperCase().startsWith("ORG")
+                || line.equalsIgnoreCase("END")) {
+            continue;
+        }
 
+        // Label
+        if (line.endsWith(":")) {
 
-            String operation =
-                    parts[0].toUpperCase();
-
-
-            String[] operands =
-                    (parts.length > 1
-                    && !parts[1].isBlank())
-
-                    ? parts[1]
+            String label =
+                    line.substring(0, line.length() - 1)
                         .trim()
-                        .split("\\s*,\\s*")
+                        .toUpperCase();
 
-                    : new String[0];
+            labels.put(label, instructionIndex);
+
+            continue;
+        }
+
+        instructionIndex++;
+    }
 
 
-            list.add(
-                new Instruction(
-                    operation,
-                    operands
-                )
-            );
+    // SECOND PASS: Create instructions
+    for (String raw : lines) {
+
+        String instructionText = raw.trim();
+
+        if (instructionText.isEmpty()) {
+            continue;
+        }
+
+        // Ignore comments
+        if (instructionText.startsWith(";")) {
+            continue;
+        }
+
+        // Ignore ORG and END
+        if (instructionText.toUpperCase().startsWith("ORG")
+                || instructionText.equalsIgnoreCase("END")) {
+            continue;
+        }
+
+        // Ignore label lines
+        if (instructionText.endsWith(":")) {
+            continue;
         }
 
 
-        return list.toArray(
-                new Instruction[0]
+        String[] parts =
+                instructionText.split("\\s+", 2);
+
+        String operation =
+                parts[0].toUpperCase();
+
+
+        String[] operands =
+                (parts.length > 1
+                && !parts[1].isBlank())
+
+                ? parts[1]
+                    .trim()
+                    .split("\\s*,\\s*")
+
+                : new String[0];
+
+
+        // Replace label operands with instruction numbers
+        for (int i = 0; i < operands.length; i++) {
+
+            String operand =
+                    operands[i].trim().toUpperCase();
+
+            if (labels.containsKey(operand)) {
+
+                operands[i] =
+                        String.valueOf(labels.get(operand));
+            }
+        }
+
+
+        list.add(
+            new Instruction(
+                operation,
+                operands
+            )
         );
     }
 
 
+    return list.toArray(
+            new Instruction[0]
+    );
+}
     // Create JSON representation of CPU state
     private String stateJson() {
 
