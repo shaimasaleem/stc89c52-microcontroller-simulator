@@ -29,7 +29,6 @@ body{
     padding:18px 20px;
     box-shadow:0 0 35px rgba(190,198,210,.12);
 }
-
 .header{
     text-align:center;
     margin-bottom:12px;
@@ -1093,7 +1092,7 @@ let previousState=null;
 let running=false;
 let stopRequested=false;
 
-/* PROGRAM HISTORY — ALL FOUR PROGRAMS */
+/* PROGRAM HISTORY — ALL SIX PROGRAMS */
 
 const programHistory=[
 
@@ -1163,10 +1162,81 @@ ADD A,#5
 MULT A,#2
 SUB A
 HELLO
+HALT`,
+
+/* CRC-24B — CORRECT TEST */
+`MOV R2,#00H
+MOV R3,#00H
+MOV R4,#00H
+MOV R5,#0A5H
+MOV R7,#08H
+
+MOV A,R2
+XRL A,R5
+MOV R2,A
+
+CRC_LOOP:
+CLR C
+MOV A,R4
+RLC A
+MOV R4,A
+MOV A,R3
+RLC A
+MOV R3,A
+MOV A,R2
+RLC A
+MOV R2,A
+JNC NO_XOR
+
+MOV A,R2
+XRL A,#80H
+MOV R2,A
+MOV A,R4
+XRL A,#63H
+MOV R4,A
+
+NO_XOR:
+DJNZ R7,CRC_LOOP
+
+HALT`,
+
+/* CRC-24B — ERROR TEST */
+`MOV R2,#00H
+MOV R3,#00H
+MOV R4,#00H
+MOV R5,#0A4H
+MOV R7,#08H
+
+MOV A,R2
+XRL A,R5
+MOV R2,A
+
+CRC_LOOP:
+CLR C
+MOV A,R4
+RLC A
+MOV R4,A
+MOV A,R3
+RLC A
+MOV R3,A
+MOV A,R2
+RLC A
+MOV R2,A
+JNC NO_XOR
+
+MOV A,R2
+XRL A,#80H
+MOV R2,A
+MOV A,R4
+XRL A,#63H
+MOV R4,A
+
+NO_XOR:
+DJNZ R7,CRC_LOOP
+
 HALT`
 
 ];
-
 let historyIndex=0;
 
 function getCategory(op){
@@ -1174,16 +1244,18 @@ function getCategory(op){
 
     if(op==="MOV"||op==="MOVC")return "Data Transfer";
     if(op==="ADD"||op==="SUB")return "Arithmetic";
-    if(op==="ANL")return "Logical";
+    if(op==="ANL"||op==="XRL")return "Logical";
+    if(op==="RLC")return "Rotate";
+    if(op==="CLR")return "Bit / Flag";
     if(op==="INC")return "Increment";
-    if(op==="SJMP")return "Control Flow";
+    if(op==="SJMP"||op==="JNC")return "Control Flow";
+    if(op==="DJNZ")return "Branch / Loop";
     if(op==="PUSH"||op==="POP")return "Stack";
     if(op==="ENQUEUE"||op==="DEQUEUE")return "FIFO Queue";
     if(op==="HALT")return "Termination";
 
     return "Other";
 }
-
 function formatHex(v){
     return Number(v).toString(16).toUpperCase().padStart(2,"0")+"H";
 }
@@ -1347,10 +1419,9 @@ if(s.memory){
 }
 
 /* PROGRAM ERROR VALIDATION */
-
 const supportedOpcodes=new Set([
-    "MOV","MOVC","ADD","SUB","ANL","INC",
-    "SJMP","HALT","PUSH","POP","ENQUEUE","DEQUEUE"
+    "MOV","MOVC","ADD","SUB","ANL","XRL","RLC","CLR","INC",
+    "SJMP","JNC","DJNZ","HALT","PUSH","POP","ENQUEUE","DEQUEUE"
 ]);
 
 let currentProgramErrors=[];
@@ -1367,9 +1438,14 @@ function validateProgramLines(){
         }))
         .filter(item=>item.text.length>0);
 
-    activeLines.forEach(({text,number})=>{
+        activeLines.forEach(({text,number})=>{
 
-        const parts=text.match(/^([A-Za-z]+)(?:\s+(.*))?$/);
+    // Allow assembly labels such as CRC_LOOP:
+    if(/^[A-Za-z_][A-Za-z0-9_]*:$/.test(text)){
+        return;
+    }
+
+    const parts=text.match(/^([A-Za-z]+)(?:\s+(.*))?$/);
 
         if(!parts){
             errors.push({
@@ -1392,22 +1468,23 @@ function validateProgramLines(){
             return;
         }
 
-        if(["HALT","DEQUEUE"].includes(op) && args){
+       if(["HALT","DEQUEUE"].includes(op) && args){
 
-            errors.push({
-                number,
-                text,
-                message:`${op} does not take an operand.`
-                    });
-        }else if(op==="MOV"){
+    errors.push({
+        number,
+        text,
+        message:`${op} does not take an operand.`
+    });
 
-            if(!/^(A|B|R[0-7])\s*,\s*#(?:\d+|0x[\da-f]+|[\da-f]+H)$/i.test(args)){
-                errors.push({
-                    number,
-                    text,
-                    message:"MOV requires a valid destination and immediate value, e.g. MOV R0,#10."
-                });
-            }
+}else if(op==="MOV"){
+
+    if(!/^(A|B|R[0-7])\s*,\s*(?:#(?:\d+|0x[\da-f]+|[\da-f]+H)|A|B|R[0-7])$/i.test(args)){
+        errors.push({
+            number,
+            text,
+            message:"MOV requires valid registers/values, e.g. MOV R0,#10 or MOV A,R2."
+        });
+    }
 
         }else if(op==="MOVC"){
 
@@ -1419,7 +1496,7 @@ function validateProgramLines(){
         });
     }
 
-        }else if(["ADD","SUB","ANL"].includes(op)){
+        }else if(["ADD","SUB","ANL","XRL"].includes(op)){
 
     if(!/^(A|B|R[0-7])\s*,\s*(?:#(?:\d+|0x[\da-f]+|[\da-f]+H)|A|B|R[0-7])$/i.test(args)){
         errors.push({
@@ -1436,23 +1513,41 @@ function validateProgramLines(){
                 text,
                 message:"INC requires a register, e.g. INC A."
             });
+            }else if(op==="RLC" && !/^A$/i.test(args)){
 
-        }else if(op==="SJMP"){
+            errors.push({
+                number,
+                text,
+                message:"RLC requires accumulator A, e.g. RLC A."
+            });
+            }else if(op==="CLR" && !/^C$/i.test(args)){
 
-            if(!/^\d+$/.test(args)){
-                errors.push({
-                    number,
-                    text,
-                    message:"SJMP requires a numeric target, e.g. SJMP 7."
-                });
+            errors.push({
+                number,
+                text,
+                message:"CLR requires carry C, e.g. CLR C."
+            });
+        }else if(op==="SJMP" || op==="JNC"){
 
-            }else if(Number(args)>=activeLines.length){
-                errors.push({
-                    number,
-                    text,
-                    message:`Jump target ${args} is outside the program.`
-                });
-            }
+    // Accept either a numeric target or a label
+    if(!/^(\d+|[A-Za-z_][A-Za-z0-9_]*)$/.test(args)){
+        errors.push({
+            number,
+            text,
+            message:`${op} requires a numeric target or label.`
+        });
+    }
+
+}else if(op==="DJNZ"){
+
+    // Example: DJNZ R7,CRC_LOOP
+    if(!/^R[0-7]\s*,\s*(\d+|[A-Za-z_][A-Za-z0-9_]*)$/i.test(args)){
+        errors.push({
+            number,
+            text,
+            message:"DJNZ requires a register and target, e.g. DJNZ R7,CRC_LOOP."
+        });
+    }
 
         }else if(["PUSH","ENQUEUE"].includes(op) &&
             !/^#?(?:\d+|0x[\da-f]+|[\da-f]+H|A|R[0-7])$/i.test(args)){
@@ -1815,6 +1910,47 @@ const after = data.state ?? data;
     selectInstruction(after.programCounter);
     return data.elapsedNanos || 0;
 }
+function verifyCRC(state){
+
+    // Only check the CRC test program
+    const source = document.getElementById("programInput").value;
+
+    if(!source.includes("CRC_LOOP")){
+        return;
+    }
+
+    // Get calculated CRC from R2:R3:R4
+    const actual =
+        state.registers[2].toString(16).padStart(2,"0") +
+        state.registers[3].toString(16).padStart(2,"0") +
+        state.registers[4].toString(16).padStart(2,"0");
+
+    const expected = "00280a";
+
+    if(actual.toLowerCase() !== expected){
+
+        // CRC FAILED
+        showProgramErrors([{
+            number:"CRC",
+            text:"Expected: 00280AH | Actual: " +
+                 actual.toUpperCase() + "H",
+            message:"CRC verification failed."
+        }]);
+
+        setStatus("CRC FAILED","#ef4444");
+
+    }else{
+
+        // CRC PASSED
+        showProgramErrors([]);
+
+        setStatus(
+            "CRC PASSED - RESULT: " +
+            actual.toUpperCase() + "H",
+            "#22c55e"
+        );
+    }
+}
 
 /* RUN — CHECK ERRORS ONLY HERE */
 
@@ -1863,7 +1999,10 @@ document.getElementById("totalRunTime").textContent = "-- ms";
             setStatus("STOPPED","#eab308");
         }else{
             setStatus("TERMINATED","#ef4444");
-        }
+
+            const finalState = await getState();
+            verifyCRC(finalState);
+}
 
     }catch(e){
         console.error(e);
